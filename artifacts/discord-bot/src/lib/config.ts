@@ -22,6 +22,9 @@ export const CHANNELS = {
 
   /** In-game /pay webhook listener — deposit detection. */
   PAYMENT: "1499922045843144875",
+
+  /** Invite claim submissions, approvals, and denials. */
+  INVITE_FLAG_LOG: "1513648681172340886",
 } as const;
 
 // ── Webhook IDs ───────────────────────────────────────────────────────────────

@@ -33,7 +33,7 @@ import {
   type BotUser,
 } from "../lib/db.js";
 import { formatCoins, parseAmount } from "../lib/format.js";
-import { logAdminAction } from "../lib/gamblelog.js";
+import { logAdminAction, logInviteAction } from "../lib/gamblelog.js";
 import { buildPanelMessage } from "../lib/panel_flow.js";
 import {
   getInviteStats,
@@ -79,10 +79,11 @@ interface ServerConfig {
   houseRates: HouseRates;
   inviteCoinsPerInvite: bigint;
   inviteClaimTiers: number[];
+  inviteLogChannelId: string | null;
 }
 
 async function fetchServerConfig(): Promise<ServerConfig> {
-  const [modRole, depCat, wdCat, vfCat, coupons, houseRates, invCfg] = await Promise.all([
+  const [modRole, depCat, wdCat, vfCat, coupons, houseRates, invCfg, inviteLogChannelId] = await Promise.all([
     getConfig("mod_role_id"),
     getConfig(CATEGORY_CONFIG_KEYS.deposit),
     getConfig(CATEGORY_CONFIG_KEYS.withdraw),
@@ -90,6 +91,7 @@ async function fetchServerConfig(): Promise<ServerConfig> {
     listCoupons(),
     getHouseRates(),
     getInviteConfig(),
+    getConfig("invite_flag_log_channel_id"),
   ]);
   const now = Date.now();
   const activeCoupons = coupons.filter(
@@ -103,6 +105,7 @@ async function fetchServerConfig(): Promise<ServerConfig> {
     houseRates,
     inviteCoinsPerInvite: invCfg.coinsPerInvite,
     inviteClaimTiers: invCfg.claimTiers,
+    inviteLogChannelId: inviteLogChannelId ?? null,
   };
 }
 
@@ -146,6 +149,13 @@ function buildServerEmbed(cfg: ServerConfig): EmbedBuilder {
       {
         name: "Invite Rewards",
         value: `**${formatCoins(cfg.inviteCoinsPerInvite)}** per invite · Milestones: **${cfg.inviteClaimTiers.join(" → ")}**`,
+        inline: false,
+      },
+      {
+        name: "Invite Log Channel",
+        value: cfg.inviteLogChannelId
+          ? `<#${cfg.inviteLogChannelId}> (\`${cfg.inviteLogChannelId}\`)`
+          : `<#1513648681172340886> (default)`,
         inline: false,
       },
     )
@@ -201,6 +211,10 @@ function buildServerComponents(): ActionRowBuilder<ButtonBuilder>[] {
     new ButtonBuilder()
       .setCustomId(`${AP_BTN_PREFIX}:srv_inviteconfig`)
       .setLabel("Invite Rewards")
+      .setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder()
+      .setCustomId(`${AP_BTN_PREFIX}:srv_setinvitelog`)
+      .setLabel("Set Invite Log")
       .setStyle(ButtonStyle.Secondary),
   );
   return [row1, row2, row3];
@@ -371,6 +385,13 @@ export function buildUserEmbed(
     });
   }
 
+  // ── Active Rig (shown before invite stats so button order matches) ────────
+  embed.addFields({
+    name: "Active Rig",
+    value: rigLine,
+    inline: false,
+  });
+
   // ── Invite stats ──────────────────────────────────────────────────────────
   const needed = Math.max(0, inv.nextClaimMin - inv.netValid);
   const canClaim = inv.netValid >= inv.nextClaimMin;
@@ -406,11 +427,6 @@ export function buildUserEmbed(
         : `Needs **${inv.nextClaimMin}** net valid — **${needed}** more to go`,
       inline: false,
     },
-    {
-      name: "Active Rig",
-      value: rigLine,
-      inline: false,
-    },
   );
 
   embed
@@ -423,10 +439,6 @@ export function buildUserEmbed(
 export function buildUserComponents(targetId: string): ActionRowBuilder<ButtonBuilder>[] {
   const row1 = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
-      .setCustomId(`${AP_BTN_PREFIX}:gamble:${targetId}`)
-      .setLabel("Gamble")
-      .setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder()
       .setCustomId(`${AP_BTN_PREFIX}:setbal:${targetId}`)
       .setLabel("Set Balance")
       .setStyle(ButtonStyle.Secondary),
@@ -437,6 +449,10 @@ export function buildUserComponents(targetId: string): ActionRowBuilder<ButtonBu
     new ButtonBuilder()
       .setCustomId(`${AP_BTN_PREFIX}:resetstats:${targetId}`)
       .setLabel("Reset Stats")
+      .setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder()
+      .setCustomId(`${AP_BTN_PREFIX}:gamble:${targetId}`)
+      .setLabel("Gamble")
       .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
       .setCustomId(`${AP_BTN_PREFIX}:refresh:${targetId}`)
@@ -890,6 +906,26 @@ async function handleServerButton(
           .setLabel(`>99M bet rate % (currently ${(rates.mega * 100).toFixed(1)}%)`)
           .setPlaceholder(`${(rates.mega * 100).toFixed(0)}`)
           .setMinLength(1).setMaxLength(5).setRequired(true)
+          .setStyle(TextInputStyle.Short),
+      ),
+    );
+    await interaction.showModal(modal);
+    return;
+  }
+
+  if (action === "srv_setinvitelog") {
+    const modal = new ModalBuilder()
+      .setCustomId(`${AP_MODAL_PREFIX}:srv_setinvitelog`)
+      .setTitle("Set Invite Log Channel");
+    modal.addComponents(
+      new ActionRowBuilder<TextInputBuilder>().addComponents(
+        new TextInputBuilder()
+          .setCustomId("channelid")
+          .setLabel("Channel ID (right-click channel → Copy ID)")
+          .setPlaceholder("1513648681172340886")
+          .setMinLength(17)
+          .setMaxLength(20)
+          .setRequired(true)
           .setStyle(TextInputStyle.Short),
       ),
     );
@@ -1457,6 +1493,22 @@ async function handleServerModal(
       ephemeral: true,
       content: ok ? `Deleted coupon \`${code}\`.` : `No coupon found with code \`${code}\`.`,
     });
+    const cfg = await fetchServerConfig();
+    await interaction.editReply({ embeds: [buildServerEmbed(cfg)], components: buildServerComponents() });
+    return;
+  }
+
+  if (action === "srv_setinvitelog") {
+    const channelId = interaction.fields.getTextInputValue("channelid").trim();
+    if (!/^\d{17,20}$/.test(channelId)) {
+      await interaction.reply({
+        content: "Invalid channel ID — must be a 17-20 digit number. Right-click a channel → Copy ID.",
+        ephemeral: true,
+      });
+      return;
+    }
+    await interaction.deferUpdate();
+    await setConfig("invite_flag_log_channel_id", channelId);
     const cfg = await fetchServerConfig();
     await interaction.editReply({ embeds: [buildServerEmbed(cfg)], components: buildServerComponents() });
     return;

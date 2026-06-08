@@ -1,6 +1,7 @@
 import { ChannelType, EmbedBuilder, type Client } from "discord.js";
 import { CHANNELS, WEBHOOK_URLS } from "./config.js";
 import { formatCoins, formatCoinsShort } from "./format.js";
+import { getConfig } from "./db.js";
 
 let cachedClient: Client | null = null;
 
@@ -112,6 +113,59 @@ export async function logWithdraw(params: {
     const ch = await cachedClient.channels.fetch(CHANNELS.WITHDRAW_LOG);
     if (!ch || ch.type !== ChannelType.GuildText) return;
     await ch.send({ content: msg, allowedMentions: { parse: [] } });
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
+ * Log an invite claim event (submitted / approved / denied) to the
+ * configurable invite-flag log channel. Falls back to the hardcoded
+ * CHANNELS.INVITE_FLAG_LOG if the DB config key is not set.
+ */
+export async function logInviteAction(params: {
+  action: "submitted" | "approved" | "denied";
+  inviterId: string;
+  inviterTag: string;
+  invitesCount: number;
+  claimNumber: number;
+  staffId?: string;
+  staffTag?: string;
+  detail?: string;
+}): Promise<void> {
+  if (!cachedClient) return;
+  try {
+    const overrideChannelId = await getConfig("invite_flag_log_channel_id").catch(() => null);
+    const channelId = overrideChannelId ?? CHANNELS.INVITE_FLAG_LOG;
+
+    const ch = await cachedClient.channels.fetch(channelId);
+    if (!ch || ch.type !== ChannelType.GuildText) return;
+
+    const colorMap = { submitted: 0xfacc15, approved: 0x22c55e, denied: 0xef4444 };
+    const titleMap = {
+      submitted: "📋 Invite Claim Submitted",
+      approved: "✅ Invite Claim Approved",
+      denied: "❌ Invite Claim Denied",
+    };
+
+    const embed = new EmbedBuilder()
+      .setColor(colorMap[params.action])
+      .setTitle(titleMap[params.action])
+      .addFields(
+        { name: "User", value: `<@${params.inviterId}> (${params.inviterTag})`, inline: true },
+        { name: "Claim #", value: `${params.claimNumber}`, inline: true },
+        { name: "Invites", value: `${params.invitesCount}`, inline: true },
+      )
+      .setTimestamp();
+
+    if (params.staffId) {
+      embed.addFields({ name: "Staff", value: `<@${params.staffId}> (${params.staffTag ?? ""})`, inline: true });
+    }
+    if (params.detail) {
+      embed.addFields({ name: "Detail", value: params.detail, inline: false });
+    }
+
+    await ch.send({ embeds: [embed], allowedMentions: { parse: [] } });
   } catch {
     /* ignore */
   }

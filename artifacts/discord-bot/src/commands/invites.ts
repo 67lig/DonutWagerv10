@@ -53,36 +53,34 @@ const command: SlashCommand = {
         : `${stats.validUnclaimed}`;
 
     const rejoinedValue = stats.totalRejoined > 0
-      ? `${stats.totalRejoined} total · ${stats.rejoinedRecently} excluded (rejoined <7d ago)`
+      ? `${stats.totalRejoined} total · ${stats.rejoinedRecently} excluded (<7d ago)`
       : "0";
 
     const fields: { name: string; value: string; inline: boolean }[] = [
-      { name: "📨 Total Invited",   value: `${stats.totalInvited}`,  inline: true },
-      { name: "✅ Valid Unclaimed",  value: netValidDisplay,           inline: true },
-      { name: "❌ Left Server",      value: `${stats.leftServer}`,     inline: true },
-      { name: "⏳ Not Verified",     value: `${stats.notVerified}`,    inline: true },
+      // Row 1 — 3 inline
+      { name: "📨 Total Invited",  value: `${stats.totalInvited}`, inline: true },
+      { name: "✅ Valid Unclaimed", value: netValidDisplay,          inline: true },
+      { name: "❌ Left Server",     value: `${stats.leftServer}`,    inline: true },
+      // Row 2 — 3 inline
+      { name: "⏳ Not Verified",    value: `${stats.notVerified}`,   inline: true },
       {
         name: "🏆 Total Claimed",
         value: `${stats.totalClaimed} invite${stats.totalClaimed !== 1 ? "s" : ""}`,
         inline: true,
       },
+      { name: "🎯 Next Claim Needs", value: `${nextMin} net valid`, inline: true },
+      // Row 3 — 3 inline (fake + rejoined + spacer)
       {
-        name: "🎯 Next Claim Needs",
-        value: `${nextMin} net valid`,
+        name: "🚫 Fake Accounts",
+        value: stats.fakeAccounts > 0 ? `${stats.fakeAccounts} excluded` : "0",
         inline: true,
       },
       {
-        name: "🚫 Fake Accounts (excluded)",
-        value: stats.fakeAccounts > 0
-          ? `${stats.fakeAccounts} — Discord account under 14 days old at join`
-          : "0",
-        inline: false,
-      },
-      {
-        name: "🔄 Rejoined (excluded if <7d)",
+        name: "🔄 Rejoined",
         value: rejoinedValue,
-        inline: false,
+        inline: true,
       },
+      { name: "\u200b", value: "\u200b", inline: true },
     ];
 
     if (stats.claimedAndLeft > 0) {

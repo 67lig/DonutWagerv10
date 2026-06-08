@@ -14,6 +14,7 @@ import { formatCoins, formatCoinsShort } from "./format.js";
 import { createTicketChannel } from "./tickets.js";
 import { isMod } from "./permissions.js";
 import { VOUCH_CHANNEL_ID } from "./constants.js";
+import { logInviteAction } from "./gamblelog.js";
 
 export const MEMBER_ROLE_ID = "1498005198990344322";
 
@@ -568,6 +569,13 @@ export async function handleInviteButton(
       ? `<@${interaction.user.id}> · <@&${ticket.modRoleId}>`
       : `<@${interaction.user.id}>`;
     await ticket.channel.send({ content: mention, embeds: [embed], components: [row] });
+    void logInviteAction({
+      action: "submitted",
+      inviterId: interaction.user.id,
+      inviterTag: interaction.user.tag,
+      invitesCount: invitesLocked,
+      claimNumber,
+    });
     await interaction.editReply({
       content: `Claim ticket opened: <#${ticket.channel.id}>\nYour **${invitesLocked}** invite${invitesLocked !== 1 ? "s" : ""} are locked pending staff review. Your \`/invites\` will show 0 until this is resolved.`,
     });
@@ -618,6 +626,16 @@ export async function handleInviteButton(
       .setFooter({ text: `Approved by ${interaction.user.tag}` });
 
     await interaction.editReply({ embeds: [approvedEmbed], components: [] });
+    void logInviteAction({
+      action: "approved",
+      inviterId: targetId,
+      inviterTag: targetUser?.tag ?? targetId,
+      invitesCount: pending.invitesUsed,
+      claimNumber: pending.claimNumber,
+      staffId: interaction.user.id,
+      staffTag: interaction.user.tag,
+      detail: `Awarded ${formatCoins(coinsAwarded)}`,
+    });
 
     if (interaction.channel && "send" in interaction.channel) {
       await interaction.channel.send(
@@ -669,17 +687,29 @@ export async function handleInviteButton(
     await interaction.deferUpdate();
 
     const pendingRaw = await getConfig(`invite_pending_${targetId}`);
+    let deniedPending: PendingClaim | null = null;
     if (pendingRaw) {
-      const pending = JSON.parse(pendingRaw) as PendingClaim;
+      deniedPending = JSON.parse(pendingRaw) as PendingClaim;
       // Revert the locked invites so the user can try again
       await pool.query(
         `UPDATE bot_invite_members SET claimed = FALSE WHERE invitee_discord_id = ANY($1)`,
-        [pending.inviteeIds],
+        [deniedPending.inviteeIds],
       );
       await deleteConfig(`invite_pending_${targetId}`);
     }
 
     const targetUser = await interaction.client.users.fetch(targetId).catch(() => null);
+    if (deniedPending) {
+      void logInviteAction({
+        action: "denied",
+        inviterId: targetId,
+        inviterTag: targetUser?.tag ?? targetId,
+        invitesCount: deniedPending.invitesUsed,
+        claimNumber: deniedPending.claimNumber,
+        staffId: interaction.user.id,
+        staffTag: interaction.user.tag,
+      });
+    }
     const deniedEmbed = new EmbedBuilder()
       .setColor(0xef4444)
       .setTitle("❌ Invite Claim Denied")

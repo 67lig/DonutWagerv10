@@ -12,10 +12,10 @@ function statusIcon(row: {
   left_at: Date | null;
   claimed: boolean;
 }): string {
-  if (row.left_at !== null) return "❌";
-  if (row.claimed) return "🏆";
-  if (row.has_member_role) return "✅";
-  return "⏳";
+  if (row.left_at !== null) return "✗";
+  if (row.claimed) return "★";
+  if (row.has_member_role) return "✓";
+  return "·";
 }
 
 function statusLabel(row: {
@@ -57,7 +57,7 @@ const command: SlashCommand = {
         embeds: [
           new EmbedBuilder()
             .setColor(0x3b82f6)
-            .setTitle(`🎟️ Invites: ${target.tag}`)
+            .setTitle(`Invites: ${target.tag}`)
             .setDescription("This user has not invited anyone yet."),
         ],
       });
@@ -68,7 +68,7 @@ const command: SlashCommand = {
       const icon = statusIcon(row);
       const label = statusLabel(row);
       const ts = Math.floor(new Date(row.joined_at).getTime() / 1000);
-      return `${icon} <@${row.invitee_discord_id}> **${label}** joined <t:${ts}:R>`;
+      return `\`${icon}\` <@${row.invitee_discord_id}> **${label}** · <t:${ts}:R>`;
     });
 
     // Split into chunks of 20 to stay within embed description limit
@@ -79,45 +79,45 @@ const command: SlashCommand = {
     }
 
     const rejoinedValue = stats.totalRejoined > 0
-      ? `${stats.totalRejoined} total · ${stats.rejoinedRecently} excluded (rejoined <7d ago)`
+      ? `${stats.totalRejoined} total · ${stats.rejoinedRecently} excluded (<7d ago)`
       : "0";
 
     const firstEmbed = new EmbedBuilder()
       .setColor(0x3b82f6)
-      .setTitle(`🎟️ Invites: ${target.tag}`)
+      .setTitle(`Invites: ${target.tag}`)
       .setDescription(chunks[0]!.join("\n"))
       .addFields(
-        { name: "📨 Total", value: `${stats.totalInvited}`, inline: true },
+        { name: "Total",          value: `${stats.totalInvited}`,  inline: true },
         {
-          name: "✅ Valid Unclaimed",
+          name: "Valid Unclaimed",
           value:
             stats.claimedAndLeft > 0
               ? `${stats.validUnclaimed - stats.claimedAndLeft} (${stats.validUnclaimed} − ${stats.claimedAndLeft} deducted)`
               : `${stats.validUnclaimed}`,
           inline: true,
         },
-        { name: "⏳ Not Verified", value: `${stats.notVerified}`, inline: true },
-        { name: "❌ Left", value: `${stats.leftServer}`, inline: true },
-        { name: "🏆 Total Claimed", value: `${stats.totalClaimed}`, inline: true },
+        { name: "Not Verified",   value: `${stats.notVerified}`,   inline: true },
+        { name: "Left",           value: `${stats.leftServer}`,    inline: true },
+        { name: "Total Claimed",  value: `${stats.totalClaimed}`,  inline: true },
+        { name: "Next Claim",     value: `${nextMin} net valid`,   inline: true },
         ...(stats.claimedAndLeft > 0
-          ? [{ name: "⚠️ Deducted", value: `-${stats.claimedAndLeft} (claimed, now left)`, inline: true }]
+          ? [{ name: "Deducted", value: `-${stats.claimedAndLeft} (claimed, now left)`, inline: true }]
           : []),
-        { name: "🎯 Next Claim Needs", value: `${nextMin} net valid`, inline: true },
         {
-          name: "🚫 Fake Accounts (excluded)",
+          name: "Fake Accounts",
           value: stats.fakeAccounts > 0
-            ? `${stats.fakeAccounts} (account under 14 days old at join)`
+            ? `${stats.fakeAccounts} (under 14 days old at join)`
             : "0",
-          inline: false,
+          inline: true,
         },
         {
-          name: "🔄 Rejoined (excluded if <7d)",
+          name: "Rejoined",
           value: rejoinedValue,
-          inline: false,
+          inline: true,
         },
       )
       .setFooter({
-        text: "✅ Valid  ⏳ Not Verified  ❌ Left  🏆 Claimed  🚫 Fake  🔄 Rejoined",
+        text: "✓ Valid  · Not Verified  ✗ Left  ★ Claimed",
       });
 
     const embeds = [firstEmbed];

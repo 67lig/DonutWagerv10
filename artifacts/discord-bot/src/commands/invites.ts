@@ -45,7 +45,7 @@ const command: SlashCommand = {
 
     const statusLine = canClaim
       ? "✅ Ready to claim!"
-      : `❌ Need ${needMore} more valid invite${needMore !== 1 ? "s" : ""}`;
+      : `Need ${needMore} more valid invite${needMore !== 1 ? "s" : ""}`;
 
     const netValidDisplay =
       stats.claimedAndLeft > 0
@@ -57,26 +57,26 @@ const command: SlashCommand = {
       : "0";
 
     const fields: { name: string; value: string; inline: boolean }[] = [
-      // Row 1 — 3 inline
-      { name: "📨 Total Invited",  value: `${stats.totalInvited}`, inline: true },
-      { name: "✅ Valid Unclaimed", value: netValidDisplay,          inline: true },
-      { name: "❌ Left Server",     value: `${stats.leftServer}`,    inline: true },
-      // Row 2 — 3 inline
-      { name: "⏳ Not Verified",    value: `${stats.notVerified}`,   inline: true },
+      // Row 1
+      { name: "Total Invited",   value: `${stats.totalInvited}`, inline: true },
+      { name: "Valid Unclaimed", value: netValidDisplay,          inline: true },
+      { name: "Left Server",     value: `${stats.leftServer}`,   inline: true },
+      // Row 2
+      { name: "Not Verified",    value: `${stats.notVerified}`,  inline: true },
       {
-        name: "🏆 Total Claimed",
+        name: "Total Claimed",
         value: `${stats.totalClaimed} invite${stats.totalClaimed !== 1 ? "s" : ""}`,
         inline: true,
       },
-      { name: "🎯 Next Claim Needs", value: `${nextMin} net valid`, inline: true },
-      // Row 3 — 3 inline (fake + rejoined + spacer)
+      { name: "Next Claim",      value: `${nextMin} net valid`,  inline: true },
+      // Row 3
       {
-        name: "🚫 Fake Accounts",
+        name: "Fake Accounts",
         value: stats.fakeAccounts > 0 ? `${stats.fakeAccounts} excluded` : "0",
         inline: true,
       },
       {
-        name: "🔄 Rejoined",
+        name: "Rejoined",
         value: rejoinedValue,
         inline: true,
       },
@@ -85,16 +85,16 @@ const command: SlashCommand = {
 
     if (stats.claimedAndLeft > 0) {
       fields.push({
-        name: "⚠️ Deducted (claimed, now left)",
-        value: `-${stats.claimedAndLeft}. Earn ${stats.claimedAndLeft} extra invite${stats.claimedAndLeft !== 1 ? "s" : ""} to offset`,
+        name: "Deducted",
+        value: `-${stats.claimedAndLeft} claimed who left. Earn ${stats.claimedAndLeft} extra invite${stats.claimedAndLeft !== 1 ? "s" : ""} to offset`,
         inline: false,
       });
     }
 
     fields.push(
-      { name: "📊 Status", value: statusLine, inline: false },
+      { name: "Status", value: statusLine, inline: false },
       {
-        name: "💰 Claimable Now",
+        name: "Claimable Now",
         value: canClaim
           ? `${formatCoins(coinsNow)} (${netValid} invites × ${formatCoinsShort(cfg.coinsPerInvite)} per invite)`
           : `Reach ${nextMin} net valid invites to unlock`,
@@ -105,10 +105,10 @@ const command: SlashCommand = {
     const tierStr = cfg.claimTiers.join(" → ");
     const embed = new EmbedBuilder()
       .setColor(canClaim ? 0x22c55e : 0xfacc15)
-      .setTitle("🎟️ Your Invite Stats")
+      .setTitle("🎟️ Invite Stats")
       .addFields(...fields)
       .setFooter({
-        text: `Not Verified = joined but hasn't verified yet  •  Earn ${formatCoinsShort(cfg.coinsPerInvite)} per valid invite  •  Milestones: ${tierStr}`,
+        text: `Fake = account <14 days old at join  •  ${formatCoinsShort(cfg.coinsPerInvite)} per valid invite  •  Milestones: ${tierStr}`,
       });
 
     if (canClaim) {

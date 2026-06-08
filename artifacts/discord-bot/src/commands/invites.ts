@@ -58,25 +58,25 @@ const command: SlashCommand = {
 
     const fields: { name: string; value: string; inline: boolean }[] = [
       // Row 1
-      { name: "Total Invited",   value: `${stats.totalInvited}`, inline: true },
-      { name: "Valid Unclaimed", value: netValidDisplay,          inline: true },
-      { name: "Left Server",     value: `${stats.leftServer}`,   inline: true },
+      { name: "📨 Total Invited",   value: `${stats.totalInvited}`, inline: true },
+      { name: "✅ Valid Unclaimed",  value: netValidDisplay,          inline: true },
+      { name: "❌ Left Server",      value: `${stats.leftServer}`,   inline: true },
       // Row 2
-      { name: "Not Verified",    value: `${stats.notVerified}`,  inline: true },
+      { name: "⏳ Not Verified",     value: `${stats.notVerified}`,  inline: true },
       {
-        name: "Total Claimed",
+        name: "🏆 Total Claimed",
         value: `${stats.totalClaimed} invite${stats.totalClaimed !== 1 ? "s" : ""}`,
         inline: true,
       },
-      { name: "Next Claim",      value: `${nextMin} net valid`,  inline: true },
+      { name: "🎯 Next Claim Needs", value: `${nextMin} net valid`,  inline: true },
       // Row 3
       {
-        name: "Fake Accounts",
-        value: stats.fakeAccounts > 0 ? `${stats.fakeAccounts} excluded` : "0",
+        name: "🚫 Fake Accounts (excluded)",
+        value: stats.fakeAccounts > 0 ? `${stats.fakeAccounts}` : "0",
         inline: true,
       },
       {
-        name: "Rejoined",
+        name: "🔄 Rejoined (excluded if <7d)",
         value: rejoinedValue,
         inline: true,
       },
@@ -105,10 +105,10 @@ const command: SlashCommand = {
     const tierStr = cfg.claimTiers.join(" → ");
     const embed = new EmbedBuilder()
       .setColor(canClaim ? 0x22c55e : 0xfacc15)
-      .setTitle("Invite Stats")
+      .setTitle("🎟️ Invite Stats")
       .addFields(...fields)
       .setFooter({
-        text: `Fake = account <14 days old at join  •  ${formatCoinsShort(cfg.coinsPerInvite)} per valid invite  •  Milestones: ${tierStr}`,
+        text: `Valid = must have member role  •  Fake = account <14 days old at join  •  ${formatCoinsShort(cfg.coinsPerInvite)} per valid invite  •  Milestones: ${tierStr}`,
       });
 
     if (canClaim) {

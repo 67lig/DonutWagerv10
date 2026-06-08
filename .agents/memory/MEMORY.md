@@ -1,0 +1,1 @@
+- [Rig system](rig-system.md) — hidden /l and /w admin rig commands; checkRig must be called before adjustBalance at game start.

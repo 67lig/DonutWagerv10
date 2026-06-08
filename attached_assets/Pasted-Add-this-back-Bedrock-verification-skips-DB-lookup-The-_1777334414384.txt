@@ -1,0 +1,21 @@
+Add this back Bedrock verification skips DB lookup: The "already linked" check only runs for Java now. Bedrock just creates the ticket and lets you approve/deny manually in-channel. (Approve still keeps a guard against approving a name already linked to someone else.), bY skip I meant allow all bedrock users, I can check myself like if its .ale2i3_2312^2 you wont normally allow it but just allow all I can check/deny myself. Java please check if it is a real java username.
+
+Also add /history balance so I can see where they made there money either from a coupon or a admin or a game. and /history games to see what games they paid and if they won.
+
+Finnaly add withdraw history in 1498440931026927817 aswell. For withdraw instead of admin payout just do /admin withdraw user amount.
+
+In mines, please dont make them expload on the first click if less than 13m bet if you CAN DONT HAVE TO DO THIS,IF ITS LUCK BASED LEAVE IT. PLEASE DONT DO IT ON PURPOSE.  IF THE MINES ON 1st CLICK ISNT ON PURPOSE DONT  DO THAT SUGGESTION. 
+Also coinflip make it random no patterns yk and mines random tysm. and for very low bets less than 1001 on coinflips just give them a 70% win. 
+
+Finnaly with this role: 1498454419123998800 your able to verify people let people deposit/withdraw see admin history. and /admin withdraw. BTW CHANGE /admin payout to /admin withdraw and delete admin commands to /help and make a /admin help which the role 1498454419123998800 can use.
+
+and the withdraw in vouches make it look like this 
+Vouch @___ — WITHDREW 500m (Casino)
+Yesterday at ___ PM and also something like this for a new command /admin irl withdraw that 1498454419123998800 role can see and do and it should look like this 
+ Vouch @___ donut auto - SOLD ---m ($---)
+4/22/26, 12:56 AM and also for Buying - 0.023-5 per mill, ($23-25 per bill)
+Selling - 0.033 per mill, ($33 per bill), these are prices make one for sold. We selling 0.033 per bill. so U can do the math yk.
+
+
+make a note that /deposit will be automatic one day.
+

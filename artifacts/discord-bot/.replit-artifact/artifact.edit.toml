@@ -1,0 +1,17 @@
+kind = "api"
+previewPath = "/bot"
+title = "Discord Bot"
+version = "1.0.0"
+id = ""
+
+[[services]]
+name = "Discord Bot"
+paths = []
+
+[services.development]
+run = "bash scripts/watchdog-bot.sh"
+
+[services.production]
+
+[services.production.run]
+args = ["bash", "scripts/watchdog-bot.sh"]

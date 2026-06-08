@@ -73,7 +73,7 @@ export async function postVouch(params: {
       .setColor(0x22c55e)
       .setAuthor({ name: "Casino Withdrawal" })
       .setDescription(
-        `Vouch <@${params.discordId}> — **WITHDREW ${formatCoinsShort(params.amount)}** (Casino)`,
+        `Vouch <@${params.discordId}> | **WITHDREW ${formatCoinsShort(params.amount)}** (Casino)`,
       )
       .setTimestamp(new Date());
 
@@ -102,7 +102,7 @@ export async function logWithdraw(params: {
       : "CASINO WITHDRAW";
   const detail = params.detail ? ` · ${params.detail}` : "";
   const msg =
-    `📤 **${tag}** — <@${params.discordId}> · ` +
+    `📤 **${tag}** | <@${params.discordId}> · ` +
     `${formatCoinsShort(params.amount)} · ` +
     `staff: ${params.staffTag} (<@${params.staffId}>)${detail}`;
 
@@ -213,7 +213,7 @@ export async function logAdminAction(params: {
       void postWebhook(
         WEBHOOK_URLS.ADMIN_LOG,
         `**${params.action}** by ${params.actorTag}` +
-          (params.detail ? ` — ${params.detail}` : ""),
+          (params.detail ? ` · ${params.detail}` : ""),
       );
     }
   } catch {

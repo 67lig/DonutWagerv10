@@ -180,7 +180,7 @@ const command: SlashCommand = {
 
     const embed = new EmbedBuilder()
       .setColor(won ? 0x22c55e : 0xef4444)
-      .setTitle(`🎡 Roulette — ${colorEmoji} ${number}`)
+      .setTitle(`🎡 Roulette: ${colorEmoji} ${number}`)
       .setDescription(
         won
           ? `**You won ${formatCoins(payout - bet)}!**\nYour balance: ${formatCoins(BigInt(after.balance))}`

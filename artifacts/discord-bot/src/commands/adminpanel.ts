@@ -380,7 +380,7 @@ export function buildUserEmbed(
   } else {
     embed.addFields({
       name: "Account",
-      value: "_No account found — user has never interacted with the bot._",
+      value: "_No account found. User has never interacted with the bot._",
       inline: false,
     });
   }
@@ -424,7 +424,7 @@ export function buildUserEmbed(
       name: "Next Claim",
       value: canClaim
         ? `Can claim now! (needs ${inv.nextClaimMin} net valid)`
-        : `Needs **${inv.nextClaimMin}** net valid — **${needed}** more to go`,
+        : `Needs **${inv.nextClaimMin}** net valid, **${needed}** more to go`,
       inline: false,
     },
   );
@@ -662,10 +662,10 @@ export async function handleAdminPanelButton(
       const icon = row.left_at !== null ? "✗" : row.has_member_role ? "✓" : "?";
       const label = row.left_at !== null ? "Left" : row.has_member_role ? "Valid" : "Not Verified";
       const ts = Math.floor(new Date(row.joined_at).getTime() / 1000);
-      return `${icon} <@${row.invitee_discord_id}> — ${label} · <t:${ts}:R>`;
+      return `${icon} <@${row.invitee_discord_id}> ${label} <t:${ts}:R>`;
     });
 
-    const header = `**Invited by ${target.username}** — ${stats.totalInvited} total · ${stats.validUnclaimed} valid · ${stats.leftServer} left\n\n`;
+    const header = `**Invited by ${target.username}** | ${stats.totalInvited} total · ${stats.validUnclaimed} valid · ${stats.leftServer} left\n\n`;
     const body = lines.join("\n");
     const content = (header + body).slice(0, 2000);
     await interaction.editReply({ content });
@@ -879,7 +879,7 @@ async function handleServerButton(
       new ActionRowBuilder<TextInputBuilder>().addComponents(
         new TextInputBuilder()
           .setCustomId("base")
-          .setLabel(`Base rate % — any bet (currently ${(rates.base * 100).toFixed(1)}%)`)
+          .setLabel(`Base rate % (any bet, currently ${(rates.base * 100).toFixed(1)}%)`)
           .setPlaceholder(`${(rates.base * 100).toFixed(0)}`)
           .setMinLength(1).setMaxLength(5).setRequired(true)
           .setStyle(TextInputStyle.Short),
@@ -1140,7 +1140,7 @@ export async function handleAdminPanelModal(
     } else if (raw.startsWith("win ")) {
       const pct = parseInt(raw.slice(4), 10);
       if (isNaN(pct) || pct < 1 || pct > 100) {
-        rigErr = "Invalid — enter `win 80` with a % between 1 and 100.";
+        rigErr = "Invalid. Enter `win 80` with a % between 1 and 100.";
       } else {
         await interaction.deferUpdate();
         await setRig(targetId, "pct_win", pct);
@@ -1207,7 +1207,7 @@ export async function handleAdminPanelModal(
     const raw = interaction.fields.getTextInputValue("amount").trim();
     const amount = parseInt(raw, 10);
     if (isNaN(amount) || amount < 1 || amount > 50) {
-      await interaction.reply({ content: "Invalid amount — must be between 1 and 50.", ephemeral: true });
+      await interaction.reply({ content: "Invalid amount. Must be between 1 and 50.", ephemeral: true });
       return;
     }
 
@@ -1239,7 +1239,7 @@ export async function handleAdminPanelModal(
   if (action === "resetinv") {
     const confirm = interaction.fields.getTextInputValue("confirm").trim();
     if (confirm !== "CONFIRM") {
-      await interaction.reply({ content: "Cancelled — you must type CONFIRM exactly.", ephemeral: true });
+      await interaction.reply({ content: "Cancelled. You must type CONFIRM exactly.", ephemeral: true });
       return;
     }
 
@@ -1276,7 +1276,7 @@ export async function handleAdminPanelModal(
     const parsed = parseAmount(raw);
     if (parsed === null || parsed < 0n) {
       await interaction.reply({
-        content: "Invalid amount — use a number or abbreviation like `50m`, `1.5b`, `500k`.",
+        content: "Invalid amount. Use a number or abbreviation like `50m`, `1.5b`, `500k`.",
         ephemeral: true,
       });
       return;
@@ -1341,7 +1341,7 @@ async function handleServerModal(
     const mega = parse(rawMega);
     if ([base, big, whale, mega].some(v => isNaN(v) || v < 0 || v > 1)) {
       await interaction.reply({
-        content: "Invalid rates — enter numbers between 0 and 100 (e.g. `56` for 56%).",
+        content: "Invalid rates. Enter numbers between 0 and 100 (e.g. `56` for 56%).",
         ephemeral: true,
       });
       return;
@@ -1364,7 +1364,7 @@ async function handleServerModal(
     const roleId = interaction.fields.getTextInputValue("roleid").trim();
     if (!/^\d{17,20}$/.test(roleId)) {
       await interaction.reply({
-        content: "Invalid role ID — must be a 17-20 digit number. Right-click a role → Copy ID.",
+        content: "Invalid role ID. Must be a 17-20 digit number. Right-click a role and Copy ID.",
         ephemeral: true,
       });
       return;
@@ -1381,14 +1381,14 @@ async function handleServerModal(
     const catId = interaction.fields.getTextInputValue("catid").trim();
     if (!["deposit", "withdraw", "verify"].includes(kind)) {
       await interaction.reply({
-        content: "Invalid kind — must be exactly: `deposit`, `withdraw`, or `verify`.",
+        content: "Invalid kind. Must be exactly: `deposit`, `withdraw`, or `verify`.",
         ephemeral: true,
       });
       return;
     }
     if (!/^\d{17,20}$/.test(catId)) {
       await interaction.reply({
-        content: "Invalid category ID — must be a 17-20 digit number. Right-click the category channel → Copy ID.",
+        content: "Invalid category ID. Must be a 17-20 digit number. Right-click the category channel and Copy ID.",
         ephemeral: true,
       });
       return;
@@ -1406,24 +1406,24 @@ async function handleServerModal(
     const code = rawCode.toUpperCase();
 
     if (!CODE_REGEX.test(code)) {
-      await interaction.reply({ content: "Invalid code — 3-32 chars: letters, numbers, dashes, underscores.", ephemeral: true });
+      await interaction.reply({ content: "Invalid code. 3-32 chars: letters, numbers, dashes, underscores.", ephemeral: true });
       return;
     }
     const rawAmount = interaction.fields.getTextInputValue("amount").trim();
     const amount = parseAmount(rawAmount);
     if (!amount || amount <= 0n) {
-      await interaction.reply({ content: "Invalid amount — try `10m`, `1.5b`, `500k`.", ephemeral: true });
+      await interaction.reply({ content: "Invalid amount. Try `10m`, `1.5b`, `500k`.", ephemeral: true });
       return;
     }
     const rawMaxUses = interaction.fields.getTextInputValue("maxuses").trim();
     const maxUses = parseInt(rawMaxUses, 10);
     if (isNaN(maxUses) || maxUses < 1 || maxUses > 1_000_000) {
-      await interaction.reply({ content: "Invalid max uses — must be a number between 1 and 1,000,000.", ephemeral: true });
+      await interaction.reply({ content: "Invalid max uses. Must be a number between 1 and 1,000,000.", ephemeral: true });
       return;
     }
     const rawType = interaction.fields.getTextInputValue("type").trim().toLowerCase();
     if (rawType !== "gamble" && rawType !== "nongamble") {
-      await interaction.reply({ content: "Invalid type — must be exactly `gamble` or `nongamble`.", ephemeral: true });
+      await interaction.reply({ content: "Invalid type. Must be exactly `gamble` or `nongamble`.", ephemeral: true });
       return;
     }
     const rawExpires = interaction.fields.getTextInputValue("expires").trim();
@@ -1431,7 +1431,7 @@ async function handleServerModal(
     if (rawExpires) {
       const hours = parseInt(rawExpires, 10);
       if (isNaN(hours) || hours < 1) {
-        await interaction.reply({ content: "Invalid expiry — enter hours (e.g. `24`) or leave blank for never.", ephemeral: true });
+        await interaction.reply({ content: "Invalid expiry. Enter hours (e.g. `24`) or leave blank for never.", ephemeral: true });
         return;
       }
       expiresAt = new Date(Date.now() + hours * 3600 * 1000);
@@ -1502,7 +1502,7 @@ async function handleServerModal(
     const channelId = interaction.fields.getTextInputValue("channelid").trim();
     if (!/^\d{17,20}$/.test(channelId)) {
       await interaction.reply({
-        content: "Invalid channel ID — must be a 17-20 digit number. Right-click a channel → Copy ID.",
+        content: "Invalid channel ID. Must be a 17-20 digit number. Right-click a channel and Copy ID.",
         ephemeral: true,
       });
       return;

@@ -33,7 +33,7 @@ const command: SlashCommand = {
 
     const embed = new EmbedBuilder()
       .setColor(0x22c55e)
-      .setTitle(`🔐 Provably Fair — ${game.charAt(0).toUpperCase() + game.slice(1)}`)
+      .setTitle(`🔐 Provably Fair: ${game.charAt(0).toUpperCase() + game.slice(1)}`)
       .setDescription(
         "Every roll is generated from a server seed (committed in advance via SHA-256 hash), your client seed, and a per-roll nonce. You can re-run the script below with these values to verify any past round.",
       )

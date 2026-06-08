@@ -86,7 +86,7 @@ const command: SlashCommand = {
     if (stats.claimedAndLeft > 0) {
       fields.push({
         name: "⚠️ Deducted (claimed, now left)",
-        value: `-${stats.claimedAndLeft} — earn ${stats.claimedAndLeft} extra invite${stats.claimedAndLeft !== 1 ? "s" : ""} to offset`,
+        value: `-${stats.claimedAndLeft}. Earn ${stats.claimedAndLeft} extra invite${stats.claimedAndLeft !== 1 ? "s" : ""} to offset`,
         inline: false,
       });
     }

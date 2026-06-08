@@ -246,7 +246,7 @@ const command: SlashCommand = {
           label = `**Blackjack! You won ${formatCoins(payout - bet)}.**`;
           await adjustBalance(interaction.user.id, payout);
         } else if (!isPlayerBJ && isDealerBJ) {
-          label = `**Dealer blackjack — you lost ${formatCoins(bet)}.**`;
+          label = `**Dealer blackjack. You lost ${formatCoins(bet)}.**`;
         } else {
           payout = bet;
           label = "**Push.** Both have blackjack.";
@@ -375,7 +375,7 @@ const command: SlashCommand = {
       endSession(interaction.user.id);
       try {
         await message.edit({
-          embeds: [buildEmbed(state, "Timed out — bet refunded.", false)],
+          embeds: [buildEmbed(state, "Timed out. Bet refunded.", false)],
           components: [controls(true)],
         });
       } catch { /* ignore */ }

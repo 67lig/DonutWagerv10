@@ -372,7 +372,7 @@ export async function processInviteClaim(discordId: string): Promise<
       const msg =
         deducted > 0
           ? `Net valid invites: **${effectiveValid}** (${validCount} valid − ${deducted} previously claimed who left). Need **${nextMin}**.`
-          : `Need **${nextMin}** valid unclaimed invites — you have **${validCount}**.`;
+          : `Need **${nextMin}** valid unclaimed invites. You have **${validCount}**.`;
       return { ok: false, reason: msg };
     }
 
@@ -549,7 +549,7 @@ export async function handleInviteButton(
         { name: "Valid Invites", value: `${invitesLocked}`, inline: true },
         { name: "Coins to Award", value: formatCoins(coinsToAward), inline: true },
         { name: "Claim #", value: `${claimNumber}`, inline: true },
-        { name: "Status", value: "Invites locked — awaiting staff review", inline: false },
+        { name: "Status", value: "Invites locked. Awaiting staff review", inline: false },
       )
       .setTimestamp()
       .setFooter({ text: "Verify the invites are legitimate before approving." });
@@ -593,7 +593,7 @@ export async function handleInviteButton(
     const pendingRaw = await getConfig(`invite_pending_${targetId}`);
     if (!pendingRaw) {
       await interaction.followUp({
-        content: "No pending claim found for this user — it may have already been processed.",
+        content: "No pending claim found for this user. It may have already been processed.",
         ephemeral: true,
       });
       return;

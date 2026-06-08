@@ -59,7 +59,7 @@ const command: SlashCommand = {
       embeds: [
         new EmbedBuilder()
           .setColor(0x22c55e)
-          .setTitle(`🔁 Seed Rotated — ${game}`)
+          .setTitle(`🔁 Seed Rotated: ${game}`)
           .addFields(
             {
               name: "Previous Server Seed (revealed)",

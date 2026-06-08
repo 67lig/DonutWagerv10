@@ -137,7 +137,7 @@ function buildRows(state: TowersState, gameOver: boolean) {
 const command: SlashCommand = {
   data: new SlashCommandBuilder()
     .setName("towers")
-    .setDescription("Climb the tower — pick the safe tile each level")
+    .setDescription("Climb the tower. Pick the safe tile each level")
     .addStringOption((o) =>
       o.setName("bet").setDescription("Amount to bet").setRequired(true),
     )
@@ -147,9 +147,9 @@ const command: SlashCommand = {
         .setDescription("Tiles per row (1 bomb each). Default: medium")
         .setRequired(false)
         .addChoices(
-          { name: "Easy — 1 bomb of 4 tiles (~1.33x per level)", value: "easy" },
-          { name: "Medium — 1 bomb of 3 tiles (1.5x per level)", value: "medium" },
-          { name: "Hard — 1 bomb of 2 tiles, 50/50 (2x per level)", value: "hard" },
+          { name: "Easy: 1 bomb of 4 tiles (~1.33x per level)", value: "easy" },
+          { name: "Medium: 1 bomb of 3 tiles (1.5x per level)", value: "medium" },
+          { name: "Hard: 1 bomb of 2 tiles, 50/50 (2x per level)", value: "hard" },
         ),
     ),
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
@@ -406,7 +406,7 @@ const command: SlashCommand = {
             await btn.update({
               embeds: [
                 buildEmbed(
-                  `**BOOM — bomb on level ${r + 1}.** Lost ${formatCoins(state.bet)}.`,
+                  `**BOOM: bomb on level ${r + 1}.** Lost ${formatCoins(state.bet)}.`,
                   0,
                 ),
               ],
@@ -477,7 +477,7 @@ const command: SlashCommand = {
 
       const mult = multiplierFor(state.currentRow, state.cols);
       await btn.update({
-        embeds: [buildEmbed("Safe — keep climbing or cash out.", mult)],
+        embeds: [buildEmbed("Safe. Keep climbing or cash out.", mult)],
         components: [...buildRows(state, false), cashoutEnabled],
       });
     });
@@ -496,7 +496,7 @@ const command: SlashCommand = {
           await message.edit({
             embeds: [
               buildEmbed(
-                "Timed out — bet refunded.",
+                "Timed out. Bet refunded.",
                 multiplierFor(state.currentRow, state.cols),
               ),
             ],

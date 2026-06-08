@@ -28,7 +28,7 @@ const command: SlashCommand = {
     const removed = await clearRig(target.id);
     await interaction.editReply({
       content: removed
-        ? `✅ <@${target.id}> — rig removed.`
+        ? `✅ <@${target.id}>: rig removed.`
         : `ℹ️ <@${target.id}> had no active rig.`,
     });
   },

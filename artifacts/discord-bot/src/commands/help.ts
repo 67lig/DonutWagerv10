@@ -48,7 +48,7 @@ const HOW_TO_PLAY: Record<
     description:
       "`/blackjack <bet>`\n\n" +
       "Beat the dealer by getting closer to 21 without going over.\n\n" +
-      "**Hit** — draw a card · **Stand** — end your turn · **Double** — double bet, one card\n\n" +
+      "**Hit**: draw a card · **Stand**: end your turn · **Double**: double bet, one card\n\n" +
       "Win → **2×** · Blackjack → **2.5×** · Tie → bet returned\n\n" +
       "Aces count as 1 or 11. J/Q/K = 10.",
   },
@@ -68,10 +68,10 @@ const HOW_TO_PLAY: Record<
     color: 0xf97316,
     description:
       "`/towers <bet> [difficulty]`\n\n" +
-      "Climb 4 rows. Each row has tiles — one safe, rest are traps.\n\n" +
-      "`easy` — 1 trap out of 3 tiles\n" +
-      "`medium` — 1 trap out of 2 tiles (50/50)\n" +
-      "`hard` — 3 traps out of 4 tiles\n\n" +
+      "Climb 4 rows. Each row has tiles. One safe, rest are traps.\n\n" +
+      "`easy`: 1 trap out of 3 tiles\n" +
+      "`medium`: 1 trap out of 2 tiles (50/50)\n" +
+      "`hard`: 3 traps out of 4 tiles\n\n" +
       "Pick the safe tile to advance and grow your multiplier.\n" +
       "**Cash Out** after any row, or reach the top for max payout.",
   },
@@ -127,15 +127,15 @@ const command: SlashCommand = {
         {
           name: "Account",
           value:
-            "`/balance` — check your coins\n" +
-            "`/daily` — free daily reward\n" +
-            "`/history balance` — coin history\n" +
-            "`/history games` — recent game results",
+            "`/balance`: check your coins\n" +
+            "`/daily`: free daily reward\n" +
+            "`/history balance`: coin history\n" +
+            "`/history games`: recent game results",
         },
         {
           name: "Invites",
           value:
-            "`/invites` — view your invite stats and claim rewards\n" +
+            "`/invites`: view your invite stats and claim rewards\n" +
             `Earn **${formatCoinsShort(COINS_PER_INVITE)} coins** per verified invite.\n` +
             `Milestones: ${CLAIM_TIERS.join(" → ")} invites.`,
         },
@@ -148,14 +148,14 @@ const command: SlashCommand = {
         {
           name: "Extras",
           value:
-            "`/redeem <code>` — use a promo code\n" +
-            "`/provablyfair <game>` — verify a game result\n" +
-            "`/resethash` — rotate your seed\n" +
-            "`/close` — close your ticket",
+            "`/redeem <code>`: use a promo code\n" +
+            "`/provablyfair <game>`: verify a game result\n" +
+            "`/resethash`: rotate your seed\n" +
+            "`/close`: close your ticket",
         },
         {
           name: "Bet Format",
-          value: "`1k`  `500k`  `1mil`  `10mil`  `1bil`  —  also `all` and `half`",
+          value: "`1k`  `500k`  `1mil`  `10mil`  `1bil`  |  also `all` and `half`",
         },
       )
       .setFooter({ text: "All games are provably fair." });

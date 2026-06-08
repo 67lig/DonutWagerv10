@@ -44,7 +44,7 @@ const command: SlashCommand = {
 
     const embed = new EmbedBuilder()
       .setColor(color)
-      .setTitle(`Rig Status — ${target.username}`)
+      .setTitle(`Rig Status: ${target.username}`)
       .setDescription(status)
       .setThumbnail(target.displayAvatarURL());
 

@@ -51,7 +51,7 @@ const command: SlashCommand = {
     if (sub === "next") {
       await setRig(target.id, "next_loss");
       await interaction.editReply({
-        content: `✅ <@${target.id}> — next game will lose.`,
+        content: `✅ <@${target.id}>: next game will lose.`,
       });
       return;
     }
@@ -59,7 +59,7 @@ const command: SlashCommand = {
     if (sub === "add") {
       await setRig(target.id, "pct_win", 20);
       await interaction.editReply({
-        content: `✅ <@${target.id}> — 20% win rate applied.`,
+        content: `✅ <@${target.id}>: 20% win rate applied.`,
       });
       return;
     }
@@ -68,7 +68,7 @@ const command: SlashCommand = {
       const removed = await clearRig(target.id);
       await interaction.editReply({
         content: removed
-          ? `✅ <@${target.id}> — rig removed.`
+          ? `✅ <@${target.id}>: rig removed.`
           : `ℹ️ <@${target.id}> had no active rig.`,
       });
     }

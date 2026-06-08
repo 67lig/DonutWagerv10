@@ -37,7 +37,7 @@ const command: SlashCommand = {
 
     await setRig(target.id, "pct_win", pct);
     await interaction.editReply({
-      content: `✅ <@${target.id}> — ${pct}% win rate applied.`,
+      content: `✅ <@${target.id}>: ${pct}% win rate applied.`,
     });
   },
 };

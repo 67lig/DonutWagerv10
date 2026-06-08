@@ -53,8 +53,8 @@ const command: SlashCommand = {
             .setDescription("gamble = must gamble before withdraw | nongamble = free to withdraw")
             .setRequired(true)
             .addChoices(
-              { name: "gamble — must gamble before withdraw", value: "gamble" },
-              { name: "nongamble — withdraw freely", value: "nongamble" },
+              { name: "gamble: must gamble before withdraw", value: "gamble" },
+              { name: "nongamble: withdraw freely", value: "nongamble" },
             ),
         )
         .addIntegerOption((o) =>
@@ -218,7 +218,7 @@ const command: SlashCommand = {
           ? ` · expires <t:${Math.floor(new Date(c.expires_at).getTime() / 1000)}:R>`
           : "";
         const typeTag = c.coupon_type === "nongamble" ? " · ✅ free" : " · 🎲 gamble";
-        return `\`${c.code}\` — ${formatCoins(BigInt(c.amount))} · ${c.uses_count}/${c.max_uses} used · ${status}${typeTag}${expires}`;
+        return `\`${c.code}\`: ${formatCoins(BigInt(c.amount))} · ${c.uses_count}/${c.max_uses} used · ${status}${typeTag}${expires}`;
       });
       await interaction.reply({
         embeds: [

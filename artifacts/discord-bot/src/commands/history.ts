@@ -75,7 +75,7 @@ const command: SlashCommand = {
 
     if (sub === "balance") {
       const events = await getBalanceHistory(target.id, 15);
-      const title = isSelf ? "Balance History" : `Balance History — ${target.tag}`;
+      const title = isSelf ? "Balance History" : `Balance History: ${target.tag}`;
       if (events.length === 0) {
         await interaction.reply({
           embeds: [
@@ -95,7 +95,7 @@ const command: SlashCommand = {
       const lines = events.map((e) => {
         const label = SOURCE_LABEL[e.source] ?? e.source;
         const delta = formatDelta(e.delta);
-        const detail = e.detail ? ` — ${e.detail}` : "";
+        const detail = e.detail ? ` (${e.detail})` : "";
         return `${label} · **${delta}** · ${formatTime(e.created_at)}${detail}`;
       });
       await interaction.reply({
@@ -105,7 +105,7 @@ const command: SlashCommand = {
             .setTitle(title)
             .setDescription(lines.join("\n"))
             .setFooter({
-              text: "Coupons, daily, admin actions, withdrawals — last 15 events.",
+              text: "Coupons, daily, admin actions, withdrawals. Last 15 events.",
             }),
         ],
         ephemeral: true,
@@ -115,7 +115,7 @@ const command: SlashCommand = {
 
     if (sub === "games") {
       const games = await getGameHistory(target.id, 15);
-      const title = isSelf ? "Game History" : `Game History — ${target.tag}`;
+      const title = isSelf ? "Game History" : `Game History: ${target.tag}`;
       if (games.length === 0) {
         await interaction.reply({
           embeds: [

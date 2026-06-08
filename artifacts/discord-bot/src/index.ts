@@ -198,7 +198,7 @@ async function handleVerifyButton(
     const conflict = await findUserByMinecraftUsername(mcName);
     if (conflict && conflict.discord_id !== targetId) {
       await interaction.reply({
-        content: `Cannot approve — \`${mcName}\` is already linked to <@${conflict.discord_id}>.`,
+        content: `Cannot approve: \`${mcName}\` is already linked to <@${conflict.discord_id}>.`,
         ephemeral: true,
       });
       return;

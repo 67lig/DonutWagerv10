@@ -65,7 +65,7 @@ const command: SlashCommand = {
   data: new SlashCommandBuilder()
     .setName("dice")
     .setDescription(
-      "Roll a 0.01-100.00 dice — pick a target and whether to roll under or over it",
+      "Roll a 0.01-100.00 dice. Pick a target and whether to roll under or over it",
     )
     .addStringOption((o) =>
       o
@@ -94,7 +94,7 @@ const command: SlashCommand = {
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
     if (!antiSpam(interaction.user.id)) {
       await interaction.reply({
-        content: "Slow down — wait a moment between commands.",
+        content: "Slow down. Wait a moment between commands.",
         ephemeral: true,
       });
       return;
@@ -161,7 +161,7 @@ const command: SlashCommand = {
         : `Over ${target.toFixed(2)}`;
     const embed = new EmbedBuilder()
       .setColor(won ? 0x22c55e : 0xef4444)
-      .setTitle(`🎲 Dice — Rolled ${roll.toFixed(2)}`)
+      .setTitle(`🎲 Dice: Rolled ${roll.toFixed(2)}`)
       .setDescription(
         won
           ? `**You won ${formatCoins(payout - bet)}!**\nYour balance: ${formatCoins(BigInt(after.balance))}`

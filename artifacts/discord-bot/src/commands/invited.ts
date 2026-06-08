@@ -57,7 +57,7 @@ const command: SlashCommand = {
         embeds: [
           new EmbedBuilder()
             .setColor(0x3b82f6)
-            .setTitle(`🎟️ Invites — ${target.tag}`)
+            .setTitle(`🎟️ Invites: ${target.tag}`)
             .setDescription("This user has not invited anyone yet."),
         ],
       });
@@ -68,7 +68,7 @@ const command: SlashCommand = {
       const icon = statusIcon(row);
       const label = statusLabel(row);
       const ts = Math.floor(new Date(row.joined_at).getTime() / 1000);
-      return `${icon} <@${row.invitee_discord_id}> — **${label}** · joined <t:${ts}:R>`;
+      return `${icon} <@${row.invitee_discord_id}> **${label}** joined <t:${ts}:R>`;
     });
 
     // Split into chunks of 20 to stay within embed description limit
@@ -84,7 +84,7 @@ const command: SlashCommand = {
 
     const firstEmbed = new EmbedBuilder()
       .setColor(0x3b82f6)
-      .setTitle(`🎟️ Invites — ${target.tag}`)
+      .setTitle(`🎟️ Invites: ${target.tag}`)
       .setDescription(chunks[0]!.join("\n"))
       .addFields(
         { name: "📨 Total", value: `${stats.totalInvited}`, inline: true },
@@ -106,7 +106,7 @@ const command: SlashCommand = {
         {
           name: "🚫 Fake Accounts (excluded)",
           value: stats.fakeAccounts > 0
-            ? `${stats.fakeAccounts} — account under 14 days old at join`
+            ? `${stats.fakeAccounts} (account under 14 days old at join)`
             : "0",
           inline: false,
         },

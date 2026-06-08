@@ -23,7 +23,7 @@ const command: SlashCommand = {
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
     if (!antiSpam(interaction.user.id, 3000)) {
       await interaction.reply({
-        content: "Slow down — wait a moment before redeeming again.",
+        content: "Slow down. Wait a moment before redeeming again.",
         ephemeral: true,
       });
       return;
@@ -49,7 +49,7 @@ const command: SlashCommand = {
 
     const requirementLine = result.couponType === "gamble"
       ? `\n\n⚠️ Must gamble before withdraw.`
-      : `\n\n✅ No gamble required — you can withdraw this balance freely.`;
+      : `\n\n✅ No gamble required. You can withdraw this balance freely.`;
 
     await interaction.reply({
       embeds: [

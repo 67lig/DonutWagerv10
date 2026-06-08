@@ -15,7 +15,7 @@ import type { SlashCommand } from "../lib/types.js";
 const command: SlashCommand = {
   data: new SlashCommandBuilder()
     .setName("coinflip")
-    .setDescription("Bet on a coin flip — heads or tails (50/50)")
+    .setDescription("Bet on a coin flip. Heads or tails (50/50)")
     .addStringOption((o) =>
       o
         .setName("side")
@@ -35,7 +35,7 @@ const command: SlashCommand = {
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
     if (!antiSpam(interaction.user.id)) {
       await interaction.reply({
-        content: "Slow down — wait a moment between commands.",
+        content: "Slow down. Wait a moment between commands.",
         ephemeral: true,
       });
       return;
@@ -85,7 +85,7 @@ const command: SlashCommand = {
     const after = await getOrCreateUser(interaction.user.id);
     const embed = new EmbedBuilder()
       .setColor(won ? 0x22c55e : 0xef4444)
-      .setTitle(`🪙 Coinflip — ${result.toUpperCase()}`)
+      .setTitle(`🪙 Coinflip: ${result.toUpperCase()}`)
       .setDescription(
         won
           ? `**You won ${formatCoins(payout - bet)}!**\nYour balance: ${formatCoins(BigInt(after.balance))}`

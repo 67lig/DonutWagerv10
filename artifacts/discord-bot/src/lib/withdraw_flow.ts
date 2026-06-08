@@ -31,14 +31,14 @@ export function buildWithdrawEmbed(params: {
     .setDescription(
       ignConfirmed
         ? `Please wait for somebody to pay you in-game on **DonutSMP**. Staff will pay **\`${ign}\`** exactly.`
-        : `Please wait for somebody to pay you. Your IGN is **\`${ign}\`** — is that correct? If not, **Cancel** and tell a staff member.`,
+        : `Please wait for somebody to pay you. Your IGN is **\`${ign}\`**. Is that correct? If not, **Cancel** and tell a staff member.`,
     )
     .addFields(
       { name: "Amount", value: formatCoins(amount), inline: true },
       {
         name: "Status",
         value: ignConfirmed
-          ? "✅ IGN confirmed — awaiting staff payout"
+          ? "✅ IGN confirmed. Awaiting staff payout"
           : "⏳ Confirm your IGN below",
         inline: true,
       },
@@ -144,7 +144,7 @@ export async function handleWithdrawButton(
       /* ignore */
     }
     await interaction.followUp({
-      content: `Confirmed — staff will pay **\`${pending.ign}\`** in-game.`,
+      content: `Confirmed. Staff will pay **\`${pending.ign}\`** in-game.`,
       ephemeral: true,
     });
     return;

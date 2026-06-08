@@ -150,7 +150,7 @@ function buildContainer(
       `**New Balance:** ${formatCoins(summary.newBalance)} `,
     ];
   } else if (state.exploded && summary) {
-    header = "## 💥 BOOM — Mine Hit!";
+    header = "## 💥 BOOM: Mine Hit!";
     bodyLines = [
       `**Tiles revealed:** ${state.revealed.size}`,
       `**Multiplier:** x0.00`,
@@ -159,7 +159,7 @@ function buildContainer(
     ];
   } else if (state.timedOut) {
     header = "## ⌛ Timed Out";
-    bodyLines = [`Game expired after 5 minutes — your bet was refunded.`];
+    bodyLines = [`Game expired after 5 minutes. Your bet was refunded.`];
   } else {
     header = "## 💎 Mines";
     const potential = BigInt(
@@ -311,7 +311,7 @@ const command: SlashCommand = {
       message = await interaction.fetchReply();
     } catch (err) {
       console.error("[mines] failed to send game message:", err);
-      await refundAndAbort("Couldn't start the game. Your bet was refunded — please try again.");
+      await refundAndAbort("Couldn't start the game. Your bet was refunded. Please try again.");
       return;
     }
 

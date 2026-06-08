@@ -196,10 +196,11 @@ export interface InviteStats {
   claimCount: number;
   fakeAccounts: number;
   rejoinedRecently: number;
+  totalRejoined: number;
 }
 
 export async function getInviteStats(discordId: string): Promise<InviteStats> {
-  const [totRes, leftRes, validRes, notVerRes, claimedLeftRes, claimedRes, countRes, fakeRes, rejoinRes] =
+  const [totRes, leftRes, validRes, notVerRes, claimedLeftRes, claimedRes, countRes, fakeRes, rejoinRecentRes, rejoinTotRes] =
     await Promise.all([
       pool.query<{ count: string }>(
         `SELECT COUNT(*) AS count FROM bot_invite_members WHERE inviter_discord_id = $1`,
@@ -250,6 +251,12 @@ export async function getInviteStats(discordId: string): Promise<InviteStats> {
              AND last_rejoined_at >= NOW() - INTERVAL '7 days'`,
         [discordId],
       ),
+      pool.query<{ count: string }>(
+        `SELECT COUNT(*) AS count FROM bot_invite_members
+           WHERE inviter_discord_id = $1
+             AND rejoined_count > 0`,
+        [discordId],
+      ),
     ]);
   return {
     totalInvited: parseInt(totRes.rows[0]?.count ?? "0"),
@@ -260,7 +267,8 @@ export async function getInviteStats(discordId: string): Promise<InviteStats> {
     totalClaimed: parseInt(claimedRes.rows[0]?.total ?? "0"),
     claimCount: parseInt(countRes.rows[0]?.count ?? "0"),
     fakeAccounts: parseInt(fakeRes.rows[0]?.count ?? "0"),
-    rejoinedRecently: parseInt(rejoinRes.rows[0]?.count ?? "0"),
+    rejoinedRecently: parseInt(rejoinRecentRes.rows[0]?.count ?? "0"),
+    totalRejoined: parseInt(rejoinTotRes.rows[0]?.count ?? "0"),
   };
 }
 

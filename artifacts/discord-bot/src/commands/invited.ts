@@ -78,6 +78,10 @@ const command: SlashCommand = {
       chunks.push(lines.slice(i, i + chunkSize));
     }
 
+    const rejoinedValue = stats.totalRejoined > 0
+      ? `${stats.totalRejoined} total · ${stats.rejoinedRecently} excluded (rejoined <7d ago)`
+      : "0";
+
     const firstEmbed = new EmbedBuilder()
       .setColor(0x3b82f6)
       .setTitle(`🎟️ Invites — ${target.tag}`)
@@ -96,22 +100,24 @@ const command: SlashCommand = {
         { name: "❌ Left", value: `${stats.leftServer}`, inline: true },
         { name: "🏆 Total Claimed", value: `${stats.totalClaimed}`, inline: true },
         ...(stats.claimedAndLeft > 0
-          ? [
-              {
-                name: "⚠️ Deducted",
-                value: `-${stats.claimedAndLeft} (claimed, now left)`,
-                inline: true,
-              },
-            ]
+          ? [{ name: "⚠️ Deducted", value: `-${stats.claimedAndLeft} (claimed, now left)`, inline: true }]
           : []),
+        { name: "🎯 Next Claim Needs", value: `${nextMin} net valid`, inline: true },
         {
-          name: "🎯 Next Claim Needs",
-          value: `${nextMin} net valid`,
-          inline: true,
+          name: "🚫 Fake Accounts (excluded)",
+          value: stats.fakeAccounts > 0
+            ? `${stats.fakeAccounts} — account under 14 days old at join`
+            : "0",
+          inline: false,
+        },
+        {
+          name: "🔄 Rejoined (excluded if <7d)",
+          value: rejoinedValue,
+          inline: false,
         },
       )
       .setFooter({
-        text: "✅ Valid  ⏳ Not Verified  ❌ Left  🏆 Claimed  ⚠️ Deducted",
+        text: "✅ Valid  ⏳ Not Verified  ❌ Left  🏆 Claimed  🚫 Fake  🔄 Rejoined",
       });
 
     const embeds = [firstEmbed];

@@ -52,6 +52,10 @@ const command: SlashCommand = {
         ? `${netValid} (${stats.validUnclaimed} − ${stats.claimedAndLeft} deducted)`
         : `${stats.validUnclaimed}`;
 
+    const rejoinedValue = stats.totalRejoined > 0
+      ? `${stats.totalRejoined} total · ${stats.rejoinedRecently} excluded (rejoined <7d ago)`
+      : "0";
+
     const fields: { name: string; value: string; inline: boolean }[] = [
       { name: "📨 Total Invited",   value: `${stats.totalInvited}`,  inline: true },
       { name: "✅ Valid Unclaimed",  value: netValidDisplay,           inline: true },
@@ -67,23 +71,19 @@ const command: SlashCommand = {
         value: `${nextMin} net valid`,
         inline: true,
       },
-    ];
-
-    if (stats.fakeAccounts > 0) {
-      fields.push({
+      {
         name: "🚫 Fake Accounts (excluded)",
-        value: `${stats.fakeAccounts} — Discord account under 14 days old at join`,
+        value: stats.fakeAccounts > 0
+          ? `${stats.fakeAccounts} — Discord account under 14 days old at join`
+          : "0",
         inline: false,
-      });
-    }
-
-    if (stats.rejoinedRecently > 0) {
-      fields.push({
-        name: "🔄 Rejoined Recently (excluded)",
-        value: `${stats.rejoinedRecently} — rejoined within the last 7 days`,
+      },
+      {
+        name: "🔄 Rejoined (excluded if <7d)",
+        value: rejoinedValue,
         inline: false,
-      });
-    }
+      },
+    ];
 
     if (stats.claimedAndLeft > 0) {
       fields.push({

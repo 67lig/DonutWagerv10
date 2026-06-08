@@ -30,6 +30,7 @@ import {
 import { isMod } from "./permissions.js";
 import { logAdminAction } from "./gamblelog.js";
 import { DEPOSIT_LOG_CHANNEL_IDS } from "./config.js";
+import { JAVA_IGN_REGEX as JAVA_REGEX, lookupJavaProfile as lookupMinecraftProfile } from "./mojang.js";
 
 export const PANEL_BTN_PREFIX = "panel";
 export const PANEL_MODAL_PREFIX = "panel_modal";
@@ -37,28 +38,6 @@ export const DEP_TICKET_BTN_PREFIX = "dep_ticket";
 
 const MIN_DEPOSIT = 1_000_000n;
 const MIN_WITHDRAW = 1_000_000n;
-
-const JAVA_REGEX = /^[A-Za-z0-9_]{3,16}$/;
-
-interface MojangProfile {
-  id: string;
-  name: string;
-}
-
-async function lookupMinecraftProfile(
-  username: string,
-): Promise<MojangProfile | null> {
-  try {
-    const r = await fetch(
-      `https://api.mojang.com/users/profiles/minecraft/${encodeURIComponent(username)}`,
-      { signal: AbortSignal.timeout(5000) },
-    );
-    if (r.status !== 200) return null;
-    return (await r.json()) as MojangProfile;
-  } catch {
-    return null;
-  }
-}
 
 export function buildPanelMessage(): {
   embed: EmbedBuilder;
@@ -195,18 +174,14 @@ export async function handlePanelButton(
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
         .setCustomId(`${PANEL_BTN_PREFIX}:verify_java`)
-        .setLabel("Java Edition")
-        .setStyle(ButtonStyle.Secondary),
-      new ButtonBuilder()
-        .setCustomId(`${PANEL_BTN_PREFIX}:verify_bedrock`)
-        .setLabel("Bedrock Edition")
+        .setLabel("Link Minecraft Account")
         .setStyle(ButtonStyle.Secondary),
     );
     const embed = new EmbedBuilder()
       .setColor(0x6b7280)
       .setTitle("Settings - Link Your Account")
       .setDescription(
-        "Select your Minecraft edition below to link your username.\n" +
+        "Click below to link your Java Edition Minecraft account.\n" +
         "You need a verified account to deposit or withdraw.",
       );
     await interaction.reply({
@@ -219,11 +194,6 @@ export async function handlePanelButton(
 
   if (action === "verify_java") {
     await interaction.showModal(ignModal("java"));
-    return;
-  }
-
-  if (action === "verify_bedrock") {
-    await interaction.showModal(ignModal("bedrock"));
     return;
   }
 
@@ -422,7 +392,7 @@ export async function handlePanelModal(
     const profile = await lookupMinecraftProfile(ign);
     if (!profile) {
       await interaction.editReply({
-        content: `No Java account found for **${ign}**. Double-check the spelling, or use **Verify (Bedrock)** if you're on console/mobile.`,
+        content: `No Java Edition account found for **${ign}**. Double-check the spelling. Only Java Edition accounts can be linked.`,
       });
       return;
     }

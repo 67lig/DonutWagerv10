@@ -5,13 +5,13 @@
 
 // ── Channel IDs ──────────────────────────────────────────────────────────────
 export const CHANNELS = {
-  /** Live feed of every bet placed (wins + losses). */
+  /** Gambling logs — live feed of every bet placed (wins + losses). */
   GAMBLE_LOG: "1498036843428577330",
 
-  /** Sensitive admin actions: coupons, balance edits, payouts. */
+  /** Payment logs — admin actions: coupons, balance edits, payouts. */
   ADMIN_LOG: "1498419875021066240",
 
-  /** Every withdrawal + IRL sale payout — full history. */
+  /** Withdraw/deposit log — every withdrawal and IRL sale payout, full history. */
   WITHDRAW_LOG: "1498440931026927817",
 
   /** Public-facing vouch / withdrawal announcements. */
@@ -20,10 +20,10 @@ export const CHANNELS = {
   /** Channel where the casino panel embed is auto-posted on startup. */
   PANEL: "1498881450643296400",
 
-  /** In-game /pay webhook listener — deposit detection. */
+  /** Auto-Deposit — in-game /pay webhook listener for deposit detection. Not fully active yet. */
   PAYMENT: "1499922045843144875",
 
-  /** Invite claim submissions, approvals, and denials. */
+  /** Invite flags — invite claim submissions, approvals, and denials. */
   INVITE_FLAG_LOG: "1513648681172340886",
 } as const;
 

@@ -105,7 +105,7 @@ const command: SlashCommand = {
     const tierStr = cfg.claimTiers.join(" → ");
     const embed = new EmbedBuilder()
       .setColor(canClaim ? 0x22c55e : 0xfacc15)
-      .setTitle("🎟️ Invite Stats")
+      .setTitle("Invite Stats")
       .addFields(...fields)
       .setFooter({
         text: `Fake = account <14 days old at join  •  ${formatCoinsShort(cfg.coinsPerInvite)} per valid invite  •  Milestones: ${tierStr}`,

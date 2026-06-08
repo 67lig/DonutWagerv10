@@ -9,13 +9,16 @@ import {
 import { getConfig } from "./db.js";
 import { PAID_TICKET_PREFIX } from "./constants.js";
 
-export type TicketKind = "deposit" | "withdraw" | "verify" | "invite";
+export type TicketKind = "deposit" | "withdraw" | "verify" | "invite" | "gamble" | "payment" | "inviteflags";
 
 const CATEGORY_DISPLAY_NAMES: Record<TicketKind, string> = {
   deposit: "Deposits",
   withdraw: "Withdrawals",
   verify: "Linking",
   invite: "Invites",
+  gamble: "Gamble",
+  payment: "Payments",
+  inviteflags: "Invite Flags",
 };
 
 const CATEGORY_CONFIG_KEYS: Record<TicketKind, string> = {
@@ -23,6 +26,9 @@ const CATEGORY_CONFIG_KEYS: Record<TicketKind, string> = {
   withdraw: "ticket_category_withdraw",
   verify: "ticket_category_verify",
   invite: "ticket_category_invite",
+  gamble: "ticket_category_gamble",
+  payment: "ticket_category_payment",
+  inviteflags: "ticket_category_inviteflags",
 };
 
 /**

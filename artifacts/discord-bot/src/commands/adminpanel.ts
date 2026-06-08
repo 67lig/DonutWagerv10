@@ -74,6 +74,9 @@ interface ServerConfig {
   depCat: string | null;
   wdCat: string | null;
   vfCat: string | null;
+  gambleCat: string | null;
+  paymentCat: string | null;
+  inviteFlagsCat: string | null;
   activeCoupons: number;
   totalCoupons: number;
   houseRates: HouseRates;
@@ -83,11 +86,14 @@ interface ServerConfig {
 }
 
 async function fetchServerConfig(): Promise<ServerConfig> {
-  const [modRole, depCat, wdCat, vfCat, coupons, houseRates, invCfg, inviteLogChannelId] = await Promise.all([
+  const [modRole, depCat, wdCat, vfCat, gambleCat, paymentCat, inviteFlagsCat, coupons, houseRates, invCfg, inviteLogChannelId] = await Promise.all([
     getConfig("mod_role_id"),
     getConfig(CATEGORY_CONFIG_KEYS.deposit),
     getConfig(CATEGORY_CONFIG_KEYS.withdraw),
     getConfig(CATEGORY_CONFIG_KEYS.verify),
+    getConfig(CATEGORY_CONFIG_KEYS.gamble),
+    getConfig(CATEGORY_CONFIG_KEYS.payment),
+    getConfig(CATEGORY_CONFIG_KEYS.inviteflags),
     listCoupons(),
     getHouseRates(),
     getInviteConfig(),
@@ -101,6 +107,9 @@ async function fetchServerConfig(): Promise<ServerConfig> {
   ).length;
   return {
     modRole, depCat, wdCat, vfCat,
+    gambleCat: gambleCat ?? null,
+    paymentCat: paymentCat ?? null,
+    inviteFlagsCat: inviteFlagsCat ?? null,
     activeCoupons, totalCoupons: coupons.length,
     houseRates,
     inviteCoinsPerInvite: invCfg.coinsPerInvite,
@@ -128,17 +137,32 @@ function buildServerEmbed(cfg: ServerConfig): EmbedBuilder {
       { name: "\u200b", value: "\u200b", inline: true },
       {
         name: "Deposit Category",
-        value: cfg.depCat ? "Set (tap Set Category to change)" : "_not set_",
+        value: cfg.depCat ? "Set" : "_not set_",
         inline: true,
       },
       {
         name: "Withdraw Category",
-        value: cfg.wdCat ? "Set (tap Set Category to change)" : "_not set_",
+        value: cfg.wdCat ? "Set" : "_not set_",
         inline: true,
       },
       {
         name: "Linking Category",
-        value: cfg.vfCat ? "Set (tap Set Category to change)" : "_not set_",
+        value: cfg.vfCat ? "Set" : "_not set_",
+        inline: true,
+      },
+      {
+        name: "Gamble Category",
+        value: cfg.gambleCat ? "Set" : "_not set_",
+        inline: true,
+      },
+      {
+        name: "Payment Category",
+        value: cfg.paymentCat ? "Set" : "_not set_",
+        inline: true,
+      },
+      {
+        name: "Invite Flags Category",
+        value: cfg.inviteFlagsCat ? "Set" : "_not set_",
         inline: true,
       },
       {
@@ -790,10 +814,10 @@ async function handleServerButton(
       new ActionRowBuilder<TextInputBuilder>().addComponents(
         new TextInputBuilder()
           .setCustomId("kind")
-          .setLabel("Kind: deposit  |  withdraw  |  verify")
+          .setLabel("Kind: deposit | withdraw | verify | gamble | payment | inviteflags")
           .setPlaceholder("deposit")
           .setMinLength(4)
-          .setMaxLength(8)
+          .setMaxLength(12)
           .setRequired(true)
           .setStyle(TextInputStyle.Short),
       ),
@@ -1377,11 +1401,13 @@ async function handleServerModal(
   }
 
   if (action === "srv_setcat") {
+    const VALID_KINDS = ["deposit", "withdraw", "verify", "gamble", "payment", "inviteflags"] as const;
+    type ValidKind = typeof VALID_KINDS[number];
     const kind = interaction.fields.getTextInputValue("kind").trim().toLowerCase();
     const catId = interaction.fields.getTextInputValue("catid").trim();
-    if (!["deposit", "withdraw", "verify"].includes(kind)) {
+    if (!VALID_KINDS.includes(kind as ValidKind)) {
       await interaction.reply({
-        content: "Invalid kind. Must be exactly: `deposit`, `withdraw`, or `verify`.",
+        content: "Invalid kind. Must be one of: `deposit`, `withdraw`, `verify`, `gamble`, `payment`, `inviteflags`.",
         ephemeral: true,
       });
       return;
@@ -1394,7 +1420,7 @@ async function handleServerModal(
       return;
     }
     await interaction.deferUpdate();
-    await setConfig(CATEGORY_CONFIG_KEYS[kind as "deposit" | "withdraw" | "verify"], catId);
+    await setConfig(CATEGORY_CONFIG_KEYS[kind as ValidKind], catId);
     const cfg = await fetchServerConfig();
     await interaction.editReply({ embeds: [buildServerEmbed(cfg)], components: buildServerComponents() });
     return;

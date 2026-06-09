@@ -64,6 +64,7 @@ import {
   handleSuggestionsMessage,
   handleSuggestionReaction,
   updateStickyMessage,
+  STICKY_MSG_KEY,
 } from "./lib/suggestions_flow.js";
 import { CHANNELS } from "./lib/config.js";
 
@@ -319,13 +320,19 @@ async function main(): Promise<void> {
   client.on(Events.MessageDelete, (message) => {
     void (async () => {
       try {
-        const storedId = await getConfig(PANEL_MESSAGE_KEY);
-        if (!storedId || message.id !== storedId) return;
-        console.log("[bot] Panel message was deleted — re-posting…");
-        // Clear stored ID so ensurePanelPosted will post a fresh one.
-        await setConfig(PANEL_MESSAGE_KEY, "");
-        if (readyClient) {
-          await ensurePanelPosted(readyClient);
+        // Auto-repost casino panel if deleted
+        const storedPanelId = await getConfig(PANEL_MESSAGE_KEY);
+        if (storedPanelId && message.id === storedPanelId) {
+          console.log("[bot] Panel message was deleted — re-posting…");
+          await setConfig(PANEL_MESSAGE_KEY, "");
+          if (readyClient) await ensurePanelPosted(readyClient);
+        }
+        // Auto-repost sticky if deleted
+        const storedStickyId = await getConfig(STICKY_MSG_KEY);
+        if (storedStickyId && message.id === storedStickyId) {
+          console.log("[bot] Sticky message was deleted — re-posting…");
+          await setConfig(STICKY_MSG_KEY, "");
+          if (readyClient) await updateStickyMessage(readyClient);
         }
       } catch {
         /* ignore */

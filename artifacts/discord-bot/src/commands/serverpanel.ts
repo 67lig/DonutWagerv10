@@ -107,7 +107,7 @@ function buildQueueComponents(showOwnerWidget = false): ActionRowBuilder<ButtonB
       .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
       .setCustomId(`${SP_BTN_PREFIX}:suggestions`)
-      .setLabel("Suggestions")
+      .setLabel("Gamblepanel")
       .setStyle(ButtonStyle.Secondary),
   ];
 
@@ -161,12 +161,8 @@ function buildSuggestionsComponents(): ActionRowBuilder<ButtonBuilder>[] {
   return [
     new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
-        .setCustomId(`${SP_BTN_PREFIX}:sugg_set3`)
-        .setLabel("Set Min: 3")
-        .setStyle(ButtonStyle.Primary),
-      new ButtonBuilder()
-        .setCustomId(`${SP_BTN_PREFIX}:sugg_set5`)
-        .setLabel("Set Min: 5")
+        .setCustomId(`${SP_BTN_PREFIX}:sugg_setmin`)
+        .setLabel("Set Threshold")
         .setStyle(ButtonStyle.Primary),
       new ButtonBuilder()
         .setCustomId(`${SP_BTN_PREFIX}:sugg_edit`)
@@ -378,16 +374,25 @@ export async function handleServerPanelButton(
     return;
   }
 
-  if (action === "sugg_set3" || action === "sugg_set5") {
-    await interaction.deferUpdate();
-    const newMin = action === "sugg_set3" ? 3 : 5;
-    await setThreshold(newMin);
-    await updateStickyMessage(interaction.client);
-    const threshold = await getThreshold();
-    await interaction.editReply({
-      embeds: [buildSuggestionsEmbed(threshold)],
-      components: buildSuggestionsComponents(),
-    });
+  if (action === "sugg_setmin") {
+    const currentThreshold = await getThreshold();
+    const modal = new ModalBuilder()
+      .setCustomId(`${SP_MODAL_PREFIX}:sugg_setmin`)
+      .setTitle("Set Reaction Threshold");
+    modal.addComponents(
+      new ActionRowBuilder<TextInputBuilder>().addComponents(
+        new TextInputBuilder()
+          .setCustomId("threshold")
+          .setLabel("Minimum reactions to promote a suggestion")
+          .setPlaceholder("5")
+          .setValue(String(currentThreshold))
+          .setMinLength(1)
+          .setMaxLength(3)
+          .setRequired(true)
+          .setStyle(TextInputStyle.Short),
+      ),
+    );
+    await interaction.showModal(modal);
     return;
   }
 
@@ -466,6 +471,29 @@ export async function handleServerPanelModal(
   }
 
   const action = interaction.customId.split(":")[1];
+
+  if (action === "sugg_setmin") {
+    const raw = interaction.fields.getTextInputValue("threshold").trim();
+    const n = parseInt(raw, 10);
+    if (isNaN(n) || n < 1 || n > 100) {
+      await interaction.reply({ content: "Please enter a number between 1 and 100.", ephemeral: true });
+      return;
+    }
+    await setThreshold(n);
+    await updateStickyMessage(interaction.client);
+    const threshold = await getThreshold();
+    await interaction.reply({
+      ephemeral: true,
+      embeds: [
+        new EmbedBuilder()
+          .setColor(0x22c55e)
+          .setTitle("Threshold Updated")
+          .setDescription(`Reaction threshold set to **${threshold}**. Sticky message refreshed.`)
+          .setTimestamp(),
+      ],
+    });
+    return;
+  }
 
   if (action === "sugg_edit") {
     const text = interaction.fields.getTextInputValue("text").trim();

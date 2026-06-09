@@ -11,7 +11,7 @@ import {
 import { getConfig, setConfig } from "./db.js";
 import { CHANNELS, SUGGESTION_EMOJI_ID } from "./config.js";
 
-const STICKY_MSG_KEY = "suggestions_sticky_msg_id";
+export const STICKY_MSG_KEY = "suggestions_sticky_msg_id";
 const THRESHOLD_KEY = "suggestions_threshold";
 const COUNT_KEY = "suggestions_count";
 const STICKY_TEXT_KEY = "suggestions_sticky_text";

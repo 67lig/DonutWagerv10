@@ -327,18 +327,17 @@ export async function handleServerPanelButton(
     const modal = new ModalBuilder()
       .setCustomId(`${SP_MODAL_PREFIX}:set2ndowner`)
       .setTitle("Set 2nd Owner");
+    const userIdInput = new TextInputBuilder()
+      .setCustomId("userid")
+      .setLabel("Discord User ID of new 2nd owner")
+      .setPlaceholder(currentId ?? "123456789012345678")
+      .setMinLength(17)
+      .setMaxLength(20)
+      .setRequired(true)
+      .setStyle(TextInputStyle.Short);
+    if (currentId) userIdInput.setValue(currentId);
     modal.addComponents(
-      new ActionRowBuilder<TextInputBuilder>().addComponents(
-        new TextInputBuilder()
-          .setCustomId("userid")
-          .setLabel("Discord User ID of new 2nd owner")
-          .setPlaceholder(currentId ?? "123456789012345678")
-          .setValue(currentId ?? "")
-          .setMinLength(17)
-          .setMaxLength(20)
-          .setRequired(true)
-          .setStyle(TextInputStyle.Short),
-      ),
+      new ActionRowBuilder<TextInputBuilder>().addComponents(userIdInput),
     );
     await interaction.showModal(modal);
     return;

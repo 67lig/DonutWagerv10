@@ -29,7 +29,8 @@ export async function initSchema(): Promise<void> {
       games_won INTEGER NOT NULL DEFAULT 0,
       last_daily TIMESTAMP,
       last_command_at TIMESTAMP,
-      created_at TIMESTAMP NOT NULL DEFAULT NOW()
+      created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      daily_streak INTEGER NOT NULL DEFAULT 0
     );
 
     CREATE TABLE IF NOT EXISTS bot_config (
@@ -144,6 +145,9 @@ export async function initSchema(): Promise<void> {
 
     ALTER TABLE bot_users
       ADD COLUMN IF NOT EXISTS wager_requirement BIGINT NOT NULL DEFAULT 0;
+
+    ALTER TABLE bot_users
+      ADD COLUMN IF NOT EXISTS daily_streak INTEGER NOT NULL DEFAULT 0;
 
     ALTER TABLE bot_coupons
       ADD COLUMN IF NOT EXISTS coupon_type VARCHAR(16) NOT NULL DEFAULT 'gamble';
@@ -333,6 +337,7 @@ export interface BotUser {
   last_daily: Date | null;
   last_command_at: Date | null;
   created_at: Date;
+  daily_streak: number;
 }
 
 export async function getOrCreateUser(discordId: string): Promise<BotUser> {
@@ -379,7 +384,8 @@ export async function resetUserStats(discordId: string): Promise<boolean> {
        total_lost = 0,
        games_played = 0,
        games_won = 0,
-       last_daily = NULL
+       last_daily = NULL,
+       daily_streak = 0
      WHERE discord_id = $1`,
     [discordId],
   );
@@ -542,11 +548,29 @@ export async function getGameHistory(
   return r.rows;
 }
 
-export async function setLastDaily(discordId: string): Promise<void> {
-  await pool.query(
-    `UPDATE bot_users SET last_daily = NOW() WHERE discord_id = $1`,
+/**
+ * Records a daily claim, computing the new consecutive-day streak.
+ * Returns the updated streak count.
+ */
+export async function setLastDaily(discordId: string): Promise<number> {
+  const r = await pool.query<{ last_daily: Date | null; daily_streak: number }>(
+    `SELECT last_daily, daily_streak FROM bot_users WHERE discord_id = $1`,
     [discordId],
   );
+  const row = r.rows[0];
+  let newStreak = 1;
+  if (row?.last_daily) {
+    const diffHours =
+      (Date.now() - new Date(row.last_daily).getTime()) / (1000 * 60 * 60);
+    if (diffHours >= 22 && diffHours < 48) {
+      newStreak = (row.daily_streak ?? 0) + 1;
+    }
+  }
+  await pool.query(
+    `UPDATE bot_users SET last_daily = NOW(), daily_streak = $2 WHERE discord_id = $1`,
+    [discordId, newStreak],
+  );
+  return newStreak;
 }
 
 export async function getLeaderboard(

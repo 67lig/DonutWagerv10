@@ -48,9 +48,9 @@ function spinWheel(prizes: Prize[]): Prize {
   return prizes[prizes.length - 1]!;
 }
 
-const MIN_CYCLES = 4; // every prize gets highlighted at least 4 times before landing
+const MIN_CYCLES = 2; // every prize gets highlighted at least 2 times before landing
 const FAST_MS   = 150; // fastest frame (Discord reliably renders ~150ms intervals)
-const SLOW_MS   = 700; // slowest frame at the very end
+const SLOW_MS   = 400; // slowest frame at the very end — keeps total ~3-4s
 
 /**
  * Cycle through ALL_PRIZES in strict sequential order, starting at a random
@@ -91,13 +91,10 @@ function buildWheelEmbed(
   spinning: boolean,
   streak: number,
 ): EmbedBuilder {
-  const eligibleLabels = new Set(eligible.map((p) => p.label));
-  const lines = ALL_PRIZES.map((p) => {
-    const locked = !eligibleLabels.has(p.label);
+  const lines = eligible.map((p) => {
     const active = activePrize && p.label === activePrize.label;
-    const arrow = active ? "  ◀" : "    ";
-    const dimmed = locked ? "~~" : "";
-    return `${active ? "**" : ""}${dimmed}${p.label} coins${dimmed}${active ? "**" : ""}${arrow}`;
+    const arrow = active ? "  ◀" : "";
+    return `${active ? "**" : ""}${p.label} coins${active ? "**" : ""}${arrow}`;
   });
 
   return new EmbedBuilder()

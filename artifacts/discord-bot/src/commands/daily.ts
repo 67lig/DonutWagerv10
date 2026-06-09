@@ -28,9 +28,9 @@ const ALL_PRIZES: Prize[] = [
   { amount:         25_000n, label:       "25,000", weight: 20,  minStreak: 0,  emoji: "🔵" },
   { amount:        100_000n, label:      "100,000", weight: 20,  minStreak: 0,  emoji: "🟢" },
   { amount:        250_000n, label:      "250,000", weight: 20,  minStreak: 0,  emoji: "🟡" },
-  { amount:      1_000_000n, label:    "1,000,000", weight: 10,  minStreak: 5,  emoji: "🟠" },
-  { amount:     10_000_000n, label:   "10,000,000", weight: 7.5, minStreak: 10, emoji: "🔴" },
-  { amount:    100_000_000n, label:  "100,000,000", weight: 2.5, minStreak: 20, emoji: "💎" },
+  { amount:      1_000_000n, label:    "1,000,000", weight: 7.5, minStreak: 5,  emoji: "🟠" },
+  { amount:     10_000_000n, label:   "10,000,000", weight: 2,   minStreak: 10, emoji: "🔴" },
+  { amount:    100_000_000n, label:  "100,000,000", weight: 0.5, minStreak: 20, emoji: "💎" },
 ];
 
 function getEligiblePrizes(streak: number): Prize[] {
@@ -53,23 +53,20 @@ function buildWheelEmbed(
   spinning: boolean,
   streak: number,
 ): EmbedBuilder {
+  const eligibleLabels = new Set(prizes.map((p) => p.label));
   const lines = ALL_PRIZES.map((p) => {
-    const locked = streak < p.minStreak;
+    const locked = !eligibleLabels.has(p.label);
     const active = activePrize && p.label === activePrize.label;
     const arrow = active ? " ◀" : "   ";
-    const lockStr = locked ? ` 🔒 (${p.minStreak}-day streak)` : "";
     const dimmed = locked ? "~~" : "";
-    return `${active ? "**" : ""}${dimmed}${p.emoji} ${p.label} coins${dimmed}${lockStr}${active ? "**" : ""}${arrow}`;
+    return `${active ? "**" : ""}${dimmed}${p.emoji} ${p.label} coins${dimmed}${active ? "**" : ""}${arrow}`;
   });
 
   const embed = new EmbedBuilder()
     .setTitle(spinning ? "🎰 Spinning..." : "🎰 Daily Spin")
     .setDescription(lines.join("\n"))
-    .setColor(spinning ? 0xfbbf24 : 0x22c55e);
-
-  if (!spinning && streak > 0) {
-    embed.setFooter({ text: `🔥 Day streak: ${streak}` });
-  }
+    .setColor(spinning ? 0xfbbf24 : 0x22c55e)
+    .setFooter({ text: `🔥 Day streak: ${streak} · The higher your streak, the better your chances!` });
 
   return embed;
 }

@@ -6,7 +6,7 @@ import {
 } from "discord.js";
 import { adjustBalance, getOrCreateUser, recordBalanceEvent } from "../lib/db.js";
 import { formatCoins, parseAmount } from "../lib/format.js";
-import { isOwner } from "../lib/permissions.js";
+import { isModOrOwner } from "../lib/permissions.js";
 import type { SlashCommand } from "../lib/types.js";
 import { CHANNELS } from "../lib/config.js";
 
@@ -25,8 +25,8 @@ const command: SlashCommand = {
         .setRequired(true),
     ),
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
-    if (!isOwner(interaction)) {
-      await interaction.reply({ content: "Bot owner only.", ephemeral: true });
+    if (!isModOrOwner(interaction)) {
+      await interaction.reply({ content: "Staff only.", ephemeral: true });
       return;
     }
     const target = interaction.options.getUser("user", true);

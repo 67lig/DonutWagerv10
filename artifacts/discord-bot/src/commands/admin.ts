@@ -14,7 +14,7 @@ import {
 } from "../lib/db.js";
 import { formatCoins, parseAmount } from "../lib/format.js";
 import type { SlashCommand } from "../lib/types.js";
-import { isOwner, isWithdrawStaff } from "../lib/permissions.js";
+import { isModOrOwner, isWithdrawStaff } from "../lib/permissions.js";
 import {
   PAID_TICKET_PREFIX,
   VOUCH_CHANNEL_ID,
@@ -47,10 +47,9 @@ const command: SlashCommand = {
 
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
     const sub = interaction.options.getSubcommand(false) ?? "";
-    const owner = isOwner(interaction);
     const withdrawStaff = isWithdrawStaff(interaction);
 
-    if (sub === "withdraw" && !owner && !withdrawStaff) {
+    if (sub === "withdraw" && !isModOrOwner(interaction) && !withdrawStaff) {
       await interaction.reply({
         content: "Withdraw staff only.",
         ephemeral: true,

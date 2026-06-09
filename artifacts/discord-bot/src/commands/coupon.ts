@@ -11,7 +11,7 @@ import {
 } from "../lib/db.js";
 import { formatCoins, parseAmount } from "../lib/format.js";
 import { logAdminAction } from "../lib/gamblelog.js";
-import { isOwner } from "../lib/permissions.js";
+import { isModOrOwner } from "../lib/permissions.js";
 import type { SlashCommand } from "../lib/types.js";
 
 const CODE_REGEX = /^[A-Z0-9_-]{3,32}$/i;
@@ -78,9 +78,9 @@ const command: SlashCommand = {
         ),
     ),
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
-    if (!isOwner(interaction)) {
+    if (!isModOrOwner(interaction)) {
       await interaction.reply({
-        content: "Bot owner only.",
+        content: "Staff only.",
         ephemeral: true,
       });
       return;

@@ -179,7 +179,7 @@ function buildServerEmbed(cfg: ServerConfig): EmbedBuilder {
         name: "Invite Log Channel",
         value: cfg.inviteLogChannelId
           ? `<#${cfg.inviteLogChannelId}> (\`${cfg.inviteLogChannelId}\`)`
-          : `<#1513648681172340886> (default)`,
+          : "_not set_",
         inline: false,
       },
     )
@@ -946,7 +946,7 @@ async function handleServerButton(
         new TextInputBuilder()
           .setCustomId("channelid")
           .setLabel("Channel ID (right-click channel → Copy ID)")
-          .setPlaceholder("1513648681172340886")
+          .setPlaceholder("paste channel ID here")
           .setMinLength(17)
           .setMaxLength(20)
           .setRequired(true)

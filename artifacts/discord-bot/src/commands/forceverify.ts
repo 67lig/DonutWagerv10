@@ -5,7 +5,7 @@ import {
   type ChatInputCommandInteraction,
 } from "discord.js";
 import { findUserByMinecraftUsername, getOrCreateUser, setVerified } from "../lib/db.js";
-import { isOwner } from "../lib/permissions.js";
+import { isModOrOwner } from "../lib/permissions.js";
 import type { SlashCommand } from "../lib/types.js";
 
 const command: SlashCommand = {
@@ -26,8 +26,8 @@ const command: SlashCommand = {
     ),
 
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
-    if (!isOwner(interaction)) {
-      await interaction.reply({ content: "Owner only.", ephemeral: true });
+    if (!isModOrOwner(interaction)) {
+      await interaction.reply({ content: "Staff only.", ephemeral: true });
       return;
     }
 

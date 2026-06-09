@@ -12,7 +12,7 @@ import {
   recordBalanceEvent,
 } from "../lib/db.js";
 import { formatCoins } from "../lib/format.js";
-import { isOwner, isWithdrawStaff } from "../lib/permissions.js";
+import { isModOrOwner } from "../lib/permissions.js";
 import { PAID_TICKET_PREFIX, VOUCH_CHANNEL_ID } from "../lib/constants.js";
 import { logAdminAction, logWithdraw, postVouch } from "../lib/gamblelog.js";
 import type { SlashCommand } from "../lib/types.js";
@@ -27,8 +27,8 @@ const command: SlashCommand = {
     ),
 
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
-    if (!isOwner(interaction)) {
-      await interaction.reply({ content: "Owner only.", ephemeral: true });
+    if (!isModOrOwner(interaction)) {
+      await interaction.reply({ content: "Staff only.", ephemeral: true });
       return;
     }
 

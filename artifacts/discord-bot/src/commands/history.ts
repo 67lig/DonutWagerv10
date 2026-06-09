@@ -6,7 +6,7 @@ import {
 } from "discord.js";
 import { getBalanceHistory, getGameHistory } from "../lib/db.js";
 import { formatCoinsShort } from "../lib/format.js";
-import { isOwner, isWithdrawStaff } from "../lib/permissions.js";
+import { isModOrOwner } from "../lib/permissions.js";
 import type { SlashCommand } from "../lib/types.js";
 
 const SOURCE_LABEL: Record<string, string> = {
@@ -60,7 +60,7 @@ const command: SlashCommand = {
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
     const sub = interaction.options.getSubcommand();
 
-    if (!isOwner(interaction) && !isWithdrawStaff(interaction)) {
+    if (!isModOrOwner(interaction)) {
       await interaction.reply({
         content: "Staff only.",
         ephemeral: true,

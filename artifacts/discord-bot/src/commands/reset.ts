@@ -5,7 +5,7 @@ import {
   type ChatInputCommandInteraction,
 } from "discord.js";
 import { getOrCreateUser, unlinkUser } from "../lib/db.js";
-import { isOwner } from "../lib/permissions.js";
+import { isModOrOwner } from "../lib/permissions.js";
 import type { SlashCommand } from "../lib/types.js";
 
 const command: SlashCommand = {
@@ -20,9 +20,9 @@ const command: SlashCommand = {
         .setRequired(true),
     ),
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
-    if (!isOwner(interaction)) {
+    if (!isModOrOwner(interaction)) {
       await interaction.reply({
-        content: "Owner only.",
+        content: "Staff only.",
         ephemeral: true,
       });
       return;

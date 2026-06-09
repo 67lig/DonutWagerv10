@@ -23,6 +23,13 @@ export const OWNER_IDS: ReadonlySet<string> = new Set([
  */
 export const WITHDRAW_ROLE_ID = "1498454419123998800";
 
+/**
+ * Default mod role. Holders have full staff access — every panel,
+ * every transaction, and are invited to all tickets.
+ * Can be overridden per-server via `/admin setmodrole`.
+ */
+export const DEFAULT_MOD_ROLE_ID = "1513738658711207937";
+
 export function isOwner(
   interaction: ChatInputCommandInteraction | ButtonInteraction,
 ): boolean {
@@ -59,12 +66,28 @@ export function isWithdrawStaff(
 }
 
 /**
+ * Synchronous check: true if the invoking user is an owner OR has the default
+ * mod role (DEFAULT_MOD_ROLE_ID). Use this to gate commands that previously
+ * were owner-only but should now be accessible to mods.
+ */
+export function isModOrOwner(
+  interaction: ChatInputCommandInteraction | ButtonInteraction,
+): boolean {
+  if (isOwner(interaction)) return true;
+  return memberHasRole(
+    interaction.member as GuildMember | null,
+    DEFAULT_MOD_ROLE_ID,
+  );
+}
+
+/**
  * True if the invoking member is staff for ticket-style operations:
- * the bot owner, a member of the configured mod role, or the withdraw-staff role.
+ * the bot owner, a member of the configured mod role, the default mod role,
+ * or the withdraw-staff role.
  *
  * Discord's built-in Administrator / Manage Guild perms do NOT grant
  * staff status — only the explicit mod role (set by the owner via
- * `/admin setmodrole`) or the withdraw-staff role does.
+ * `/admin setmodrole`), the default mod role, or the withdraw-staff role.
  */
 export async function isMod(
   interaction: ChatInputCommandInteraction | ButtonInteraction,
@@ -72,6 +95,7 @@ export async function isMod(
   if (isOwner(interaction)) return true;
   const member = interaction.member as GuildMember | null;
   if (memberHasRole(member, WITHDRAW_ROLE_ID)) return true;
+  if (memberHasRole(member, DEFAULT_MOD_ROLE_ID)) return true;
   const modRoleId = await getConfig("mod_role_id");
   if (modRoleId && memberHasRole(member, modRoleId)) return true;
   return false;

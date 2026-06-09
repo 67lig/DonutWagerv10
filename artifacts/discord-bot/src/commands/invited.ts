@@ -5,7 +5,7 @@ import {
 } from "discord.js";
 import type { SlashCommand } from "../lib/types.js";
 import { getInviteList, getInviteStats, getNextClaimMin } from "../lib/invite_flow.js";
-import { isOwner, isWithdrawStaff } from "../lib/permissions.js";
+import { isModOrOwner } from "../lib/permissions.js";
 
 function statusIcon(row: {
   has_member_role: boolean;
@@ -37,7 +37,7 @@ const command: SlashCommand = {
       o.setName("user").setDescription("User to look up").setRequired(true),
     ),
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
-    if (!isOwner(interaction) && !isWithdrawStaff(interaction)) {
+    if (!isModOrOwner(interaction)) {
       await interaction.reply({ content: "Staff only.", ephemeral: true });
       return;
     }

@@ -136,7 +136,7 @@ function buildQueueComponents(showOwnerWidget = false): ActionRowBuilder<ButtonB
 
 const command: SlashCommand = {
   data: new SlashCommandBuilder()
-    .setName("gamblepanel")
+    .setName("serverpanel")
     .setDescription(".")
     .setDefaultMemberPermissions(0n),
 

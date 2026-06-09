@@ -23,10 +23,15 @@ import {
 } from "../lib/db.js";
 import { formatCoins, formatCoinsShort, parseAmount } from "../lib/format.js";
 import { logAdminAction, logWithdraw, postVouch } from "../lib/gamblelog.js";
-import { DEPOSIT_LOG_CHANNEL_IDS } from "../lib/config.js";
+import { CHANNELS, DEPOSIT_LOG_CHANNEL_IDS } from "../lib/config.js";
 import { VOUCH_CHANNEL_ID } from "../lib/constants.js";
 import { setSecondOwnerIdCache, getSecondOwnerId } from "../lib/owners.js";
 import { setConfig } from "../lib/db.js";
+import {
+  getThreshold,
+  setThreshold,
+  updateStickyMessage,
+} from "../lib/suggestions_flow.js";
 
 export const SP_BTN_PREFIX = "gp";
 export const SP_MODAL_PREFIX = "gp_modal";
@@ -120,6 +125,15 @@ function buildQueueComponents(showOwnerWidget = false): ActionRowBuilder<ButtonB
     ),
   ];
 
+  rows.push(
+    new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`${SP_BTN_PREFIX}:suggestions`)
+        .setLabel("💬 Suggestions")
+        .setStyle(ButtonStyle.Secondary),
+    ),
+  );
+
   if (showOwnerWidget) {
     rows.push(
       new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -132,6 +146,43 @@ function buildQueueComponents(showOwnerWidget = false): ActionRowBuilder<ButtonB
   }
 
   return rows;
+}
+
+function buildSuggestionsEmbed(threshold: number): EmbedBuilder {
+  return new EmbedBuilder()
+    .setColor(0x8b5cf6)
+    .setTitle("💬 Suggestions Settings")
+    .setDescription(
+      `**Suggestions channel:** <#${CHANNELS.SUGGESTIONS}>\n` +
+      `**Top Suggestions channel:** <#${CHANNELS.TOP_SUGGESTIONS}>\n\n` +
+      `**Current reaction threshold:** \`${threshold}\`\n` +
+      `Users who react with the emoji ${threshold} times promote a suggestion to top-suggestions.\n\n` +
+      `Use the buttons below to change the threshold or refresh the sticky message.`,
+    )
+    .setTimestamp();
+}
+
+function buildSuggestionsComponents(): ActionRowBuilder<ButtonBuilder>[] {
+  return [
+    new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`${SP_BTN_PREFIX}:sugg_set3`)
+        .setLabel("Set Min: 3")
+        .setStyle(ButtonStyle.Primary),
+      new ButtonBuilder()
+        .setCustomId(`${SP_BTN_PREFIX}:sugg_set5`)
+        .setLabel("Set Min: 5")
+        .setStyle(ButtonStyle.Primary),
+      new ButtonBuilder()
+        .setCustomId(`${SP_BTN_PREFIX}:sugg_refresh`)
+        .setLabel("Refresh Sticky")
+        .setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder()
+        .setCustomId(`${SP_BTN_PREFIX}:refresh`)
+        .setLabel("← Back")
+        .setStyle(ButtonStyle.Secondary),
+    ),
+  ];
 }
 
 const command: SlashCommand = {
@@ -315,6 +366,40 @@ export async function handleServerPanelButton(
       ),
     );
     await interaction.showModal(modal);
+    return;
+  }
+
+  if (action === "suggestions") {
+    await interaction.deferUpdate();
+    const threshold = await getThreshold();
+    await interaction.editReply({
+      embeds: [buildSuggestionsEmbed(threshold)],
+      components: buildSuggestionsComponents(),
+    });
+    return;
+  }
+
+  if (action === "sugg_set3" || action === "sugg_set5") {
+    await interaction.deferUpdate();
+    const newMin = action === "sugg_set3" ? 3 : 5;
+    await setThreshold(newMin);
+    await updateStickyMessage(interaction.client);
+    const threshold = await getThreshold();
+    await interaction.editReply({
+      embeds: [buildSuggestionsEmbed(threshold)],
+      components: buildSuggestionsComponents(),
+    });
+    return;
+  }
+
+  if (action === "sugg_refresh") {
+    await interaction.deferUpdate();
+    await updateStickyMessage(interaction.client);
+    const threshold = await getThreshold();
+    await interaction.editReply({
+      embeds: [buildSuggestionsEmbed(threshold)],
+      components: buildSuggestionsComponents(),
+    });
     return;
   }
 

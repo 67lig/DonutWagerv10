@@ -3,6 +3,7 @@ import {
   EmbedBuilder,
   Events,
   GatewayIntentBits,
+  Partials,
   REST,
   Routes,
   type ButtonInteraction,
@@ -59,6 +60,11 @@ import {
   PAYMENT_CHANNEL_ID,
   handlePaymentMessage,
 } from "./lib/payment_flow.js";
+import {
+  handleSuggestionsMessage,
+  handleSuggestionReaction,
+  updateStickyMessage,
+} from "./lib/suggestions_flow.js";
 import { CHANNELS } from "./lib/config.js";
 
 // DB keys for remembering where the panel is posted.
@@ -285,7 +291,9 @@ async function main(): Promise<void> {
       GatewayIntentBits.GuildMembers,
       GatewayIntentBits.GuildMessages,
       GatewayIntentBits.MessageContent,
+      GatewayIntentBits.GuildMessageReactions,
     ],
+    partials: [Partials.Message, Partials.Channel, Partials.Reaction],
   });
   setLogClient(client);
 
@@ -344,10 +352,22 @@ async function main(): Promise<void> {
   });
 
   client.on(Events.MessageCreate, (message) => {
-    if (message.channelId !== PAYMENT_CHANNEL_ID) return;
     if (!client.isReady()) return;
-    void handlePaymentMessage(message, client).catch((err) => {
-      console.error("[bot] PaymentMessage handler failed:", err);
+    if (message.channelId === PAYMENT_CHANNEL_ID) {
+      void handlePaymentMessage(message, client).catch((err) => {
+        console.error("[bot] PaymentMessage handler failed:", err);
+      });
+    }
+    if (message.channelId === CHANNELS.SUGGESTIONS) {
+      void handleSuggestionsMessage(message).catch((err) => {
+        console.error("[bot] SuggestionsMessage handler failed:", err);
+      });
+    }
+  });
+
+  client.on(Events.MessageReactionAdd, (reaction, user) => {
+    void handleSuggestionReaction(reaction, user).catch((err) => {
+      console.error("[bot] SuggestionReaction handler failed:", err);
     });
   });
 

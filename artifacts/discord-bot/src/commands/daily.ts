@@ -106,7 +106,7 @@ function buildWheelEmbed(
 
 function buildResultEmbed(prize: Prize, newBalance: bigint, streak: number): EmbedBuilder {
   const teaser = streak < 20
-    ? `\n\n~~💎 100,000,000 coins~~ — Reach a **5-day streak** to unlock this prize!`
+    ? `\n\n~~100,000,000 coins~~ Minimum of a **5-day streak** to have a chance to win this prize!`
     : "";
 
   return new EmbedBuilder()

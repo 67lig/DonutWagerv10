@@ -28,7 +28,17 @@ export const CHANNELS = {
 
   /** Player-to-player /pay logs. */
   PAY_LOG: "1513748228552659045",
+
+  /** Suggestions — users post ideas here; bot keeps a sticky at the bottom. */
+  SUGGESTIONS: "1513762971933868187",
+
+  /** Top Suggestions — promoted here when threshold reactions are hit. */
+  TOP_SUGGESTIONS: "1513764243470811246",
 } as const;
+
+// ── Suggestion emoji ──────────────────────────────────────────────────────────
+/** Custom emoji ID used for suggestion reactions. */
+export const SUGGESTION_EMOJI_ID = "1513763646017245375";
 
 // ── Webhook IDs ───────────────────────────────────────────────────────────────
 export const WEBHOOK_IDS = {

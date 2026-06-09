@@ -8,7 +8,7 @@ import {
   type PartialUser,
   type User,
 } from "discord.js";
-import { getConfig, setConfig } from "./db.js";
+import { getConfig, setConfig, pool } from "./db.js";
 import { CHANNELS, SUGGESTION_EMOJI_ID } from "./config.js";
 
 export const STICKY_MSG_KEY = "suggestions_sticky_msg_id";
@@ -171,4 +171,40 @@ export async function handleSuggestionReaction(
     content: `${EMOJI_STR} **#${num}**`,
     embeds: [embed],
   });
+}
+
+export async function clearAllSuggestions(client: Client): Promise<void> {
+  // Wipe promoted-tracking keys and reset counter.
+  await pool.query(`DELETE FROM bot_config WHERE key LIKE 'suggestions_promoted_%'`);
+  await setConfig(COUNT_KEY, "0");
+  await setConfig(STICKY_MSG_KEY, "");
+
+  // Bulk-delete messages in #suggestions.
+  const sugCh = await client.channels.fetch(CHANNELS.SUGGESTIONS).catch(() => null);
+  if (sugCh && sugCh.isTextBased() && "bulkDelete" in sugCh) {
+    const msgs = await (sugCh as { messages: { fetch: (opts: { limit: number }) => Promise<Map<string, unknown>> } })
+      .messages.fetch({ limit: 100 })
+      .catch(() => null);
+    if (msgs && msgs.size > 0) {
+      await (sugCh as { bulkDelete: (ids: unknown[], force?: boolean) => Promise<unknown> })
+        .bulkDelete([...msgs.keys()], true)
+        .catch(() => null);
+    }
+  }
+
+  // Bulk-delete messages in #top-suggestions.
+  const topCh = await client.channels.fetch(CHANNELS.TOP_SUGGESTIONS).catch(() => null);
+  if (topCh && topCh.isTextBased() && "bulkDelete" in topCh) {
+    const msgs = await (topCh as { messages: { fetch: (opts: { limit: number }) => Promise<Map<string, unknown>> } })
+      .messages.fetch({ limit: 100 })
+      .catch(() => null);
+    if (msgs && msgs.size > 0) {
+      await (topCh as { bulkDelete: (ids: unknown[], force?: boolean) => Promise<unknown> })
+        .bulkDelete([...msgs.keys()], true)
+        .catch(() => null);
+    }
+  }
+
+  // Re-post the sticky.
+  await updateStickyMessage(client);
 }

@@ -64,7 +64,6 @@ import {
   handleSuggestionsMessage,
   handleSuggestionReaction,
   updateStickyMessage,
-  STICKY_MSG_KEY,
 } from "./lib/suggestions_flow.js";
 import {
   CLOSE_REQ_BTN_PREFIX,
@@ -331,13 +330,7 @@ async function main(): Promise<void> {
           await setConfig(PANEL_MESSAGE_KEY, "");
           if (readyClient) await ensurePanelPosted(readyClient);
         }
-        // Auto-repost sticky if deleted
-        const storedStickyId = await getConfig(STICKY_MSG_KEY);
-        if (storedStickyId && message.id === storedStickyId) {
-          console.log("[bot] Sticky message was deleted — re-posting…");
-          await setConfig(STICKY_MSG_KEY, "");
-          if (readyClient) await updateStickyMessage(readyClient);
-        }
+
       } catch {
         /* ignore */
       }

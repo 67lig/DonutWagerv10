@@ -19,7 +19,7 @@ const STICKY_TEXT_KEY = "suggestions_sticky_text";
 const EMOJI_STR = `<:donutemoji:${SUGGESTION_EMOJI_ID}>`;
 
 const DEFAULT_STICKY_TEXT =
-  `When your suggestion gets {threshold} {emoji} reactions it will be put in top suggestions.`;
+  `When your suggestion gets {threshold} {emoji} reactions it will be put in top suggestions.\nTo submit a suggestion, use /suggest`;
 
 export async function getStickyText(): Promise<string> {
   return (await getConfig(STICKY_TEXT_KEY)) ?? DEFAULT_STICKY_TEXT;
@@ -50,7 +50,10 @@ async function buildStickyContent(threshold: number): Promise<string> {
   const resolved = template
     .replace("{threshold}", String(threshold))
     .replace("{emoji}", EMOJI_STR);
-  return `-# ${resolved}`;
+  return resolved
+    .split("\n")
+    .map((line) => `-# ${line}`)
+    .join("\n");
 }
 
 export async function updateStickyMessage(

@@ -11,6 +11,7 @@ import {
 } from "../lib/db.js";
 import { formatCoins } from "../lib/format.js";
 import { requireVerified } from "../lib/guards.js";
+import { FULL_OWNER_ID } from "../lib/owners.js";
 import type { SlashCommand } from "../lib/types.js";
 
 const COOLDOWN_MS = 22 * 60 * 60 * 1000;
@@ -47,13 +48,36 @@ function spinWheel(prizes: Prize[]): Prize {
   return prizes[prizes.length - 1]!;
 }
 
+/**
+ * Build an animation sequence of prize indices that:
+ * - Starts at a random position
+ * - Cycles forward through ALL_PRIZES
+ * - Lands exactly on the winner at the final frame
+ */
+function buildFrameSequence(winner: Prize, totalFrames: number): Prize[] {
+  const n = ALL_PRIZES.length;
+  const winnerIdx = ALL_PRIZES.findIndex((p) => p.label === winner.label);
+  const startIdx = Math.floor(Math.random() * n);
+
+  const frames: Prize[] = [];
+  for (let i = 0; i < totalFrames - 1; i++) {
+    frames.push(ALL_PRIZES[(startIdx + i) % n]!);
+  }
+  // Last frame is always the winner
+  frames.push(winner);
+  return frames;
+}
+
+// Delays per frame: starts fast, slows down toward the end
+const FRAME_DELAYS = [100, 120, 150, 190, 240, 310, 400, 520, 680, 880];
+
 function buildWheelEmbed(
-  prizes: Prize[],
+  eligible: Prize[],
   activePrize: Prize | null,
   spinning: boolean,
   streak: number,
 ): EmbedBuilder {
-  const eligibleLabels = new Set(prizes.map((p) => p.label));
+  const eligibleLabels = new Set(eligible.map((p) => p.label));
   const lines = ALL_PRIZES.map((p) => {
     const locked = !eligibleLabels.has(p.label);
     const active = activePrize && p.label === activePrize.label;
@@ -62,13 +86,11 @@ function buildWheelEmbed(
     return `${active ? "**" : ""}${dimmed}${p.emoji} ${p.label} coins${dimmed}${active ? "**" : ""}${arrow}`;
   });
 
-  const embed = new EmbedBuilder()
+  return new EmbedBuilder()
     .setTitle(spinning ? "🎰 Spinning..." : "🎰 Daily Spin")
     .setDescription(lines.join("\n"))
     .setColor(spinning ? 0xfbbf24 : 0x22c55e)
     .setFooter({ text: `🔥 Day streak: ${streak} · The higher your streak, the better your chances!` });
-
-  return embed;
 }
 
 function buildResultEmbed(prize: Prize, newBalance: bigint, streak: number): EmbedBuilder {
@@ -94,8 +116,9 @@ const command: SlashCommand = {
     if (!verified) return;
 
     const user = await getOrCreateUser(interaction.user.id);
+    const isOwner = interaction.user.id === FULL_OWNER_ID;
 
-    if (user.last_daily) {
+    if (!isOwner && user.last_daily) {
       const elapsed = Date.now() - new Date(user.last_daily).getTime();
       if (elapsed < COOLDOWN_MS) {
         const remaining = COOLDOWN_MS - elapsed;
@@ -123,32 +146,17 @@ const command: SlashCommand = {
 
     await interaction.deferReply();
 
-    // Animation frame 1 — fast random highlight
-    const frame1 = eligible[Math.floor(Math.random() * eligible.length)]!;
-    await interaction.editReply({
-      embeds: [buildWheelEmbed(ALL_PRIZES, frame1, true, currentStreak)],
-    });
-    await sleep(700);
+    // Build the spin sequence — fast start, slow finish
+    const frames = buildFrameSequence(winner, FRAME_DELAYS.length);
 
-    // Animation frame 2 — another random highlight
-    const others = eligible.filter((p) => p.label !== frame1.label);
-    const frame2 = others.length > 0
-      ? others[Math.floor(Math.random() * others.length)]!
-      : eligible[0]!;
-    await interaction.editReply({
-      embeds: [buildWheelEmbed(ALL_PRIZES, frame2, true, currentStreak)],
-    });
-    await sleep(700);
-
-    // Animation frame 3 — slow down near the winner
-    const nearWinner = eligible.filter((p) => p.label !== winner.label);
-    const frame3 = nearWinner.length > 0
-      ? nearWinner[Math.floor(Math.random() * nearWinner.length)]!
-      : winner;
-    await interaction.editReply({
-      embeds: [buildWheelEmbed(ALL_PRIZES, frame3, true, currentStreak)],
-    });
-    await sleep(900);
+    for (let i = 0; i < frames.length; i++) {
+      const frame = frames[i]!;
+      const isLast = i === frames.length - 1;
+      await interaction.editReply({
+        embeds: [buildWheelEmbed(eligible, frame, !isLast, currentStreak)],
+      });
+      if (!isLast) await sleep(FRAME_DELAYS[i]!);
+    }
 
     // Credit the prize and update streak
     const newBalance = await adjustBalance(interaction.user.id, winner.amount);
@@ -160,7 +168,6 @@ const command: SlashCommand = {
       detail: `Daily spin: ${winner.label} coins (streak ${newStreak})`,
     });
 
-    // Final result
     await interaction.editReply({
       embeds: [buildResultEmbed(winner, newBalance, newStreak)],
     });

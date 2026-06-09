@@ -105,11 +105,15 @@ function buildWheelEmbed(
 }
 
 function buildResultEmbed(prize: Prize, newBalance: bigint, streak: number): EmbedBuilder {
+  const teaser = streak < 20
+    ? `\n\n~~💎 100,000,000 coins~~ — Reach a **5-day streak** to unlock this prize!`
+    : "";
+
   return new EmbedBuilder()
     .setColor(0x22c55e)
     .setTitle(`You landed on ${prize.label} coins!`)
     .setDescription(
-      `**+${formatCoins(prize.amount)}** added to your balance.\nNew balance: **${formatCoins(newBalance)}**\n\nKeep your streak going. A higher streak unlocks better prizes and improves your odds!`,
+      `**+${formatCoins(prize.amount)}** added to your balance.\nNew balance: **${formatCoins(newBalance)}**\n\nKeep your streak going. A higher streak unlocks better prizes and improves your odds!${teaser}`,
     )
     .setFooter({ text: `🔥 Day streak: ${streak} · Come back in 22 hours` })
     .setTimestamp();

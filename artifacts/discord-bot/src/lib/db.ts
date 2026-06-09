@@ -815,6 +815,23 @@ export async function claimPaymentMessage(messageId: string): Promise<boolean> {
   }
 }
 
+/**
+ * Atomically claim a unique key for ttlMs milliseconds.
+ * Returns true the first time the key is claimed; false if already claimed.
+ * Safe across multiple bot instances sharing the same DB.
+ */
+export async function claimOnce(key: string, ttlMs: number): Promise<boolean> {
+  const claimed = await claimPaymentMessage(`__once__${key}`);
+  if (claimed) {
+    setTimeout(() => {
+      pool
+        .query(`DELETE FROM bot_processed_messages WHERE message_id = $1`, [`__once__${key}`])
+        .catch(() => {});
+    }, ttlMs);
+  }
+  return claimed;
+}
+
 /** How many coins the sender has paid out today (UTC day). */
 export async function getDailyPaySent(senderId: string): Promise<bigint> {
   const r = await pool.query<{ total: string }>(

@@ -53,6 +53,7 @@ import {
   setThreshold,
   setStickyText,
   updateStickyMessage,
+  clearAllSuggestions,
 } from "../lib/suggestions_flow.js";
 
 export const AP_BTN_PREFIX = "ap";
@@ -293,6 +294,10 @@ function buildApSuggestionsComponents(): ActionRowBuilder<ButtonBuilder>[] {
         .setCustomId(`${AP_BTN_PREFIX}:srv_sugg_refresh`)
         .setLabel("Refresh Sticky")
         .setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder()
+        .setCustomId(`${AP_BTN_PREFIX}:srv_sugg_clearall`)
+        .setLabel("Clear All Suggestions")
+        .setStyle(ButtonStyle.Danger),
       new ButtonBuilder()
         .setCustomId(`${AP_BTN_PREFIX}:srv_refresh`)
         .setLabel("Back")
@@ -1260,6 +1265,24 @@ async function handleServerButton(
     const threshold = await getThreshold();
     await interaction.editReply({
       embeds: [buildApSuggestionsEmbed(threshold)],
+      components: buildApSuggestionsComponents(),
+    });
+    return;
+  }
+
+  if (action === "srv_sugg_clearall") {
+    await interaction.deferUpdate();
+    await clearAllSuggestions(interaction.client);
+    const threshold = await getThreshold();
+    await interaction.editReply({
+      embeds: [
+        buildApSuggestionsEmbed(threshold).setDescription(
+          `All suggestions cleared and counter reset to 0.\n\n` +
+          `Suggestions channel: <#${CHANNELS.SUGGESTIONS}>\n` +
+          `Top Suggestions channel: <#${CHANNELS.TOP_SUGGESTIONS}>\n\n` +
+          `Current reaction threshold: \`${threshold}\``,
+        ),
+      ],
       components: buildApSuggestionsComponents(),
     });
     return;

@@ -8,7 +8,7 @@ import {
   type PartialUser,
   type User,
 } from "discord.js";
-import { getConfig, setConfig, pool } from "./db.js";
+import { getConfig, setConfig, pool, claimOnce } from "./db.js";
 import { CHANNELS, SUGGESTION_EMOJI_ID } from "./config.js";
 
 export const STICKY_MSG_KEY = "suggestions_sticky_msg_id";
@@ -89,7 +89,6 @@ export async function updateStickyMessage(
 }
 
 const _processedMsgIds = new Set<string>();
-const _recentlyDmedUsers = new Set<string>();
 
 export async function handleSuggestionsMessage(
   message: Message | PartialMessage,
@@ -99,7 +98,7 @@ export async function handleSuggestionsMessage(
   // Bot-posted messages are managed externally (e.g. /suggest handles sticky).
   if (message.author?.bot) return;
 
-  // Message-level dedup: catches same-message double-fires from discord.js partials.
+  // Message-level dedup: prevents same-message double-fires from discord.js partials.
   if (_processedMsgIds.has(message.id)) return;
   _processedMsgIds.add(message.id);
   setTimeout(() => _processedMsgIds.delete(message.id), 10_000);
@@ -111,11 +110,9 @@ export async function handleSuggestionsMessage(
 
     await (fullMsg as Message).delete().catch(() => null);
 
-    // User-level dedup: only send one DM per user per 30s regardless of cause.
+    // DB-level dedup: one DM per user per 30s, safe across multiple bot instances.
     const uid = (fullMsg as Message).author?.id;
-    if (uid && !_recentlyDmedUsers.has(uid)) {
-      _recentlyDmedUsers.add(uid);
-      setTimeout(() => _recentlyDmedUsers.delete(uid), 30_000);
+    if (uid && await claimOnce(`sugg_dm_${uid}`, 30_000)) {
       await (fullMsg as Message).author
         ?.send(
           "Use **/suggest** to submit a suggestion. Direct messages in that channel are not allowed.",

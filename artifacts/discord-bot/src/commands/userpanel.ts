@@ -3,7 +3,7 @@ import {
   SlashCommandBuilder,
   type ChatInputCommandInteraction,
 } from "discord.js";
-import { OWNER_IDS } from "../lib/owners.js";
+import { isModOrOwner } from "../lib/permissions.js";
 import type { SlashCommand } from "../lib/types.js";
 import { getOrCreateUser } from "../lib/db.js";
 import { getRigRow } from "../lib/rig.js";
@@ -25,8 +25,8 @@ const command: SlashCommand = {
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
     await interaction.deferReply({ ephemeral: true });
 
-    if (!OWNER_IDS.has(interaction.user.id)) {
-      await interaction.editReply({ content: "Unknown command." });
+    if (!isModOrOwner(interaction)) {
+      await interaction.editReply({ content: "Staff only." });
       return;
     }
 

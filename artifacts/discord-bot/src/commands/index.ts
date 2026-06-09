@@ -3,7 +3,6 @@ import verify from "./verify.js";
 import invites from "./invites.js";
 import balance from "./balance.js";
 import daily from "./daily.js";
-import pay from "./pay.js";
 import close from "./close.js";
 import reset from "./reset.js";
 import redeem from "./redeem.js";
@@ -32,7 +31,6 @@ export const commands: SlashCommand[] = [
   invites,
   balance,
   daily,
-  pay,
   close,
   reset,
   redeem,

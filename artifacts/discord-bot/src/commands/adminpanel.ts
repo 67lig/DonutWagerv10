@@ -29,6 +29,7 @@ import {
   setConfig,
   setVerified,
   findUserByMinecraftUsername,
+  getGameHistory,
   pool,
   type BotUser,
 } from "../lib/db.js";
@@ -503,7 +504,18 @@ export function buildUserComponents(targetId: string): ActionRowBuilder<ButtonBu
       .setStyle(ButtonStyle.Secondary),
   );
 
-  return [row1, row2];
+  const row3 = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`${AP_BTN_PREFIX}:gamblelog:${targetId}`)
+      .setLabel("Gamble Log")
+      .setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder()
+      .setCustomId(`${AP_BTN_PREFIX}:userstats:${targetId}`)
+      .setLabel("Stats")
+      .setStyle(ButtonStyle.Secondary),
+  );
+
+  return [row1, row2, row3];
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -745,6 +757,71 @@ export async function handleAdminPanelButton(
       )
       .setTimestamp();
 
+    await interaction.editReply({ embeds: [embed] });
+    return;
+  }
+
+  if (action === "gamblelog") {
+    await interaction.deferReply({ ephemeral: true });
+    const rows = await getGameHistory(targetId, 25);
+    const target = await interaction.client.users.fetch(targetId);
+    if (rows.length === 0) {
+      await interaction.editReply({ content: `No game history found for **${target.username}**.` });
+      return;
+    }
+    const lines = rows.map((r) => {
+      const ts = Math.floor(new Date(r.created_at).getTime() / 1000);
+      const net = r.won ? BigInt(r.payout) - BigInt(r.bet) : BigInt(r.bet);
+      const prefix = r.won ? "W" : "L";
+      return `${prefix} ${r.game.padEnd(10)} ${r.won ? "+" : "-"}${formatCoins(net).padStart(14)}  bet ${formatCoins(BigInt(r.bet))}  <t:${ts}:R>`;
+    });
+    const header = `**Gamble Log - ${target.username}** (last ${rows.length})\n`;
+    await interaction.editReply({ content: header + "```\n" + lines.join("\n") + "\n```" });
+    return;
+  }
+
+  if (action === "userstats") {
+    await interaction.deferReply({ ephemeral: true });
+    const target = await interaction.client.users.fetch(targetId);
+    const perGame = await pool.query<{
+      game: string;
+      plays: string;
+      wins: string;
+      total_bet: string;
+      total_payout: string;
+    }>(
+      `SELECT game,
+              COUNT(*)::text AS plays,
+              COUNT(*) FILTER (WHERE won)::text AS wins,
+              SUM(bet)::text AS total_bet,
+              SUM(payout)::text AS total_payout
+         FROM game_log
+        WHERE discord_id = $1
+        GROUP BY game
+        ORDER BY COUNT(*) DESC`,
+      [targetId],
+    );
+    if (perGame.rows.length === 0) {
+      await interaction.editReply({ content: `No game data found for **${target.username}**.` });
+      return;
+    }
+    const embed = new EmbedBuilder()
+      .setColor(0x3b82f6)
+      .setTitle(`Game Stats - ${target.username}`)
+      .setTimestamp();
+    for (const r of perGame.rows) {
+      const plays = parseInt(r.plays, 10);
+      const wins = parseInt(r.wins, 10);
+      const wagered = BigInt(r.total_bet);
+      const paid = BigInt(r.total_payout);
+      const net = paid - wagered;
+      const wr = plays > 0 ? `${((wins / plays) * 100).toFixed(1)}%` : "N/A";
+      embed.addFields({
+        name: r.game,
+        value: `${plays} plays | ${wins}W / ${plays - wins}L (${wr}) | Wagered: ${formatCoins(wagered)} | Net: ${net >= 0n ? "+" : ""}${formatCoins(net < 0n ? -net : net)}`,
+        inline: false,
+      });
+    }
     await interaction.editReply({ embeds: [embed] });
     return;
   }

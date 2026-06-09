@@ -11,7 +11,7 @@ import {
   type ChatInputCommandInteraction,
   type ModalSubmitInteraction,
 } from "discord.js";
-import { isModOrOwner } from "../lib/permissions.js";
+import { isModOrOwner, isFullOwner } from "../lib/permissions.js";
 import type { SlashCommand } from "../lib/types.js";
 import {
   adjustBalance,
@@ -25,6 +25,8 @@ import { formatCoins, formatCoinsShort, parseAmount } from "../lib/format.js";
 import { logAdminAction, logWithdraw, postVouch } from "../lib/gamblelog.js";
 import { DEPOSIT_LOG_CHANNEL_IDS } from "../lib/config.js";
 import { VOUCH_CHANNEL_ID } from "../lib/constants.js";
+import { setSecondOwnerIdCache, getSecondOwnerId } from "../lib/owners.js";
+import { setConfig } from "../lib/db.js";
 
 export const SP_BTN_PREFIX = "gp";
 export const SP_MODAL_PREFIX = "gp_modal";
@@ -82,8 +84,8 @@ function buildQueueEmbed(rows: PendingRow[]): EmbedBuilder {
   return embed;
 }
 
-function buildQueueComponents(): ActionRowBuilder<ButtonBuilder>[] {
-  return [
+function buildQueueComponents(showOwnerWidget = false): ActionRowBuilder<ButtonBuilder>[] {
+  const rows: ActionRowBuilder<ButtonBuilder>[] = [
     new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
         .setCustomId(`${SP_BTN_PREFIX}:approve`)
@@ -117,6 +119,19 @@ function buildQueueComponents(): ActionRowBuilder<ButtonBuilder>[] {
         .setStyle(ButtonStyle.Secondary),
     ),
   ];
+
+  if (showOwnerWidget) {
+    rows.push(
+      new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`${SP_BTN_PREFIX}:set2ndowner`)
+          .setLabel("Set 2nd Owner")
+          .setStyle(ButtonStyle.Danger),
+      ),
+    );
+  }
+
+  return rows;
 }
 
 const command: SlashCommand = {
@@ -134,7 +149,7 @@ const command: SlashCommand = {
     const rows = await fetchPending();
     await interaction.editReply({
       embeds: [buildQueueEmbed(rows)],
-      components: buildQueueComponents(),
+      components: buildQueueComponents(isFullOwner(interaction)),
     });
   },
 };

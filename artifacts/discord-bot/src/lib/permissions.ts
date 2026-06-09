@@ -5,9 +5,9 @@ import {
   type ModalSubmitInteraction,
 } from "discord.js";
 import { getConfig } from "./db.js";
-import { OWNER_IDS } from "./owners.js";
+import { isOwnerById, isFullOwnerById } from "./owners.js";
 
-export { OWNER_IDS };
+export { isOwnerById, isFullOwnerById };
 
 type AnyInteraction =
   | ChatInputCommandInteraction
@@ -22,7 +22,11 @@ type AnyInteraction =
 export const WITHDRAW_ROLE_ID = "1498454419123998800";
 
 export function isOwner(interaction: AnyInteraction): boolean {
-  return OWNER_IDS.has(interaction.user.id);
+  return isOwnerById(interaction.user.id);
+}
+
+export function isFullOwner(interaction: AnyInteraction): boolean {
+  return isFullOwnerById(interaction.user.id);
 }
 
 function memberHasRole(

@@ -307,6 +307,9 @@ async function main(): Promise<void> {
     void ensurePanelPosted(c).catch((err) => {
       console.error("[bot] Panel auto-post failed:", err);
     });
+    void updateStickyMessage(c).catch((err) => {
+      console.error("[bot] Sticky message refresh failed:", err);
+    });
     void initInviteCache(c).catch((err) => {
       console.error("[bot] Invite cache init failed:", err);
     });

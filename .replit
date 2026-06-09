@@ -96,3 +96,8 @@ externalPort = 3001
 
 [nix]
 channel = "stable-25_05"
+
+[userenv]
+
+[userenv.shared]
+DISCORD_CLIENT_ID = "1513393574295896166"

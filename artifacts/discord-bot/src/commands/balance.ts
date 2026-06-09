@@ -20,10 +20,9 @@ const command: SlashCommand = {
     ),
 
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
-    await interaction.deferReply({ ephemeral: false });
-
     const target = interaction.options.getUser("user") ?? interaction.user;
     const isSelf = target.id === interaction.user.id;
+    await interaction.deferReply({ ephemeral: !isSelf });
 
     const [user, viewerIsMod] = await Promise.all([
       getOrCreateUser(target.id),

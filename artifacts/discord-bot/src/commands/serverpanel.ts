@@ -12,7 +12,7 @@ import {
   type ChatInputCommandInteraction,
   type ModalSubmitInteraction,
 } from "discord.js";
-import { OWNER_IDS } from "../lib/owners.js";
+import { isModOrOwner } from "../lib/permissions.js";
 import type { SlashCommand } from "../lib/types.js";
 import {
   adjustBalance,
@@ -127,8 +127,8 @@ const command: SlashCommand = {
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
-    if (!OWNER_IDS.has(interaction.user.id)) {
-      await interaction.reply({ content: "Unknown command.", ephemeral: true });
+    if (!isModOrOwner(interaction)) {
+      await interaction.reply({ content: "Staff only.", ephemeral: true });
       return;
     }
     await interaction.deferReply({ ephemeral: true });
@@ -145,8 +145,8 @@ export default command;
 export async function handleServerPanelButton(
   interaction: ButtonInteraction,
 ): Promise<void> {
-  if (!OWNER_IDS.has(interaction.user.id)) {
-    await interaction.reply({ content: "Unknown command.", ephemeral: true });
+  if (!isModOrOwner(interaction)) {
+    await interaction.reply({ content: "Staff only.", ephemeral: true });
     return;
   }
 
@@ -315,8 +315,8 @@ export async function handleServerPanelButton(
 export async function handleServerPanelModal(
   interaction: ModalSubmitInteraction,
 ): Promise<void> {
-  if (!OWNER_IDS.has(interaction.user.id)) {
-    await interaction.reply({ content: "Unknown command.", ephemeral: true });
+  if (!isModOrOwner(interaction)) {
+    await interaction.reply({ content: "Staff only.", ephemeral: true });
     return;
   }
 

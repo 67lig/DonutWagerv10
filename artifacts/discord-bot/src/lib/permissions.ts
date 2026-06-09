@@ -2,8 +2,14 @@ import {
   type ButtonInteraction,
   type ChatInputCommandInteraction,
   type GuildMember,
+  type ModalSubmitInteraction,
 } from "discord.js";
 import { getConfig } from "./db.js";
+
+type AnyInteraction =
+  | ChatInputCommandInteraction
+  | ButtonInteraction
+  | ModalSubmitInteraction;
 
 /**
  * Hard-coded bot owners. ONLY these users can run financial admin commands
@@ -18,21 +24,19 @@ export const OWNER_IDS: ReadonlySet<string> = new Set([
 
 /**
  * The "withdraw staff" Discord role. Holders may run `/admin withdraw`,
- * `/admin help`, and approve verification tickets —
+ * `/admin help`, and approve verification tickets
  * but cannot use the rest of `/admin`, `/coupon`, etc.
  */
 export const WITHDRAW_ROLE_ID = "1498454419123998800";
 
 /**
- * Default mod role. Holders have full staff access — every panel,
+ * Default mod role. Holders have full staff access: every panel,
  * every transaction, and are invited to all tickets.
  * Can be overridden per-server via `/admin setmodrole`.
  */
 export const DEFAULT_MOD_ROLE_ID = "1513738658711207937";
 
-export function isOwner(
-  interaction: ChatInputCommandInteraction | ButtonInteraction,
-): boolean {
+export function isOwner(interaction: AnyInteraction): boolean {
   return OWNER_IDS.has(interaction.user.id);
 }
 
@@ -55,9 +59,7 @@ function memberHasRole(
  * True if the invoking user is owner or has the dedicated withdraw-staff role.
  * Used to gate `/admin withdraw` and `/admin help`.
  */
-export function isWithdrawStaff(
-  interaction: ChatInputCommandInteraction | ButtonInteraction,
-): boolean {
+export function isWithdrawStaff(interaction: AnyInteraction): boolean {
   if (isOwner(interaction)) return true;
   return memberHasRole(
     interaction.member as GuildMember | null,
@@ -67,12 +69,10 @@ export function isWithdrawStaff(
 
 /**
  * Synchronous check: true if the invoking user is an owner OR has the default
- * mod role (DEFAULT_MOD_ROLE_ID). Use this to gate commands that previously
- * were owner-only but should now be accessible to mods.
+ * mod role (DEFAULT_MOD_ROLE_ID). Use this to gate any staff-only command or
+ * interaction handler (slash commands, button handlers, modal handlers).
  */
-export function isModOrOwner(
-  interaction: ChatInputCommandInteraction | ButtonInteraction,
-): boolean {
+export function isModOrOwner(interaction: AnyInteraction): boolean {
   if (isOwner(interaction)) return true;
   return memberHasRole(
     interaction.member as GuildMember | null,
@@ -86,12 +86,10 @@ export function isModOrOwner(
  * or the withdraw-staff role.
  *
  * Discord's built-in Administrator / Manage Guild perms do NOT grant
- * staff status — only the explicit mod role (set by the owner via
- * `/admin setmodrole`), the default mod role, or the withdraw-staff role.
+ * staff status: only the explicit mod role (set via `/admin setmodrole`),
+ * the default mod role, or the withdraw-staff role.
  */
-export async function isMod(
-  interaction: ChatInputCommandInteraction | ButtonInteraction,
-): Promise<boolean> {
+export async function isMod(interaction: AnyInteraction): Promise<boolean> {
   if (isOwner(interaction)) return true;
   const member = interaction.member as GuildMember | null;
   if (memberHasRole(member, WITHDRAW_ROLE_ID)) return true;

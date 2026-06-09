@@ -258,10 +258,6 @@ function buildServerComponents(): ActionRowBuilder<ButtonBuilder>[] {
       .setLabel("Set Invite Log")
       .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
-      .setCustomId(`${AP_BTN_PREFIX}:srv_setpaylogs`)
-      .setLabel("Set Pay Logs")
-      .setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder()
       .setCustomId(`${AP_BTN_PREFIX}:srv_suggestions`)
       .setLabel("Suggestions")
       .setStyle(ButtonStyle.Secondary),
@@ -946,13 +942,13 @@ async function handleServerButton(
   if (action === "srv_setcat") {
     const modal = new ModalBuilder()
       .setCustomId(`${AP_MODAL_PREFIX}:srv_setcat`)
-      .setTitle("Set Ticket Category");
+      .setTitle("Set Category / Channel");
     modal.addComponents(
       new ActionRowBuilder<TextInputBuilder>().addComponents(
         new TextInputBuilder()
           .setCustomId("kind")
-          .setLabel("Kind: deposit | withdraw | verify | gamble | payment | inviteflags")
-          .setPlaceholder("deposit")
+          .setLabel("Type")
+          .setPlaceholder("deposit | withdraw | verify | gamble | payment | inviteflags | paylogs")
           .setMinLength(4)
           .setMaxLength(12)
           .setRequired(true)
@@ -961,7 +957,7 @@ async function handleServerButton(
       new ActionRowBuilder<TextInputBuilder>().addComponents(
         new TextInputBuilder()
           .setCustomId("catid")
-          .setLabel("Category Channel ID (right-click → Copy ID)")
+          .setLabel("ID (right-click channel/category, Copy ID)")
           .setPlaceholder("123456789012345678")
           .setMinLength(17)
           .setMaxLength(20)
@@ -1196,26 +1192,6 @@ async function handleServerButton(
           .setPlaceholder("SUMMER25")
           .setMinLength(3)
           .setMaxLength(32)
-          .setRequired(true)
-          .setStyle(TextInputStyle.Short),
-      ),
-    );
-    await interaction.showModal(modal);
-    return;
-  }
-
-  if (action === "srv_setpaylogs") {
-    const modal = new ModalBuilder()
-      .setCustomId(`${AP_MODAL_PREFIX}:srv_setpaylogs`)
-      .setTitle("Set Pay Logs Channel");
-    modal.addComponents(
-      new ActionRowBuilder<TextInputBuilder>().addComponents(
-        new TextInputBuilder()
-          .setCustomId("channelid")
-          .setLabel("Channel ID (right-click channel and Copy ID)")
-          .setPlaceholder("paste channel ID here")
-          .setMinLength(17)
-          .setMaxLength(20)
           .setRequired(true)
           .setStyle(TextInputStyle.Short),
       ),
@@ -1626,48 +1602,32 @@ async function handleServerModal(
     const VALID_KINDS = ["deposit", "withdraw", "verify", "gamble", "payment", "inviteflags"] as const;
     type ValidKind = typeof VALID_KINDS[number];
     const kind = interaction.fields.getTextInputValue("kind").trim().toLowerCase();
-    const catId = interaction.fields.getTextInputValue("catid").trim();
-    if (!VALID_KINDS.includes(kind as ValidKind)) {
+    const id = interaction.fields.getTextInputValue("catid").trim();
+    if (!/^\d{17,20}$/.test(id)) {
       await interaction.reply({
-        content: "Invalid kind. Must be one of: `deposit`, `withdraw`, `verify`, `gamble`, `payment`, `inviteflags`.",
+        content: "Invalid ID. Must be a 17-20 digit number. Right-click the channel or category and Copy ID.",
         ephemeral: true,
       });
       return;
     }
-    if (!/^\d{17,20}$/.test(catId)) {
+    if (kind === "paylogs") {
+      await interaction.deferUpdate();
+      await setConfig("pay_log_channel_id", id);
+    } else if (VALID_KINDS.includes(kind as ValidKind)) {
+      await interaction.deferUpdate();
+      await setConfig(CATEGORY_CONFIG_KEYS[kind as ValidKind], id);
+    } else {
       await interaction.reply({
-        content: "Invalid category ID. Must be a 17-20 digit number. Right-click the category channel and Copy ID.",
+        content: "Invalid type. Must be one of: `deposit`, `withdraw`, `verify`, `gamble`, `payment`, `inviteflags`, `paylogs`.",
         ephemeral: true,
       });
       return;
     }
-    await interaction.deferUpdate();
-    await setConfig(CATEGORY_CONFIG_KEYS[kind as ValidKind], catId);
     try {
       const cfg = await fetchServerConfig();
       await interaction.editReply({ embeds: [buildServerEmbed(cfg)], components: buildServerComponents() });
     } catch {
-      await interaction.followUp({ content: "Category saved.", ephemeral: true }).catch(() => null);
-    }
-    return;
-  }
-
-  if (action === "srv_setpaylogs") {
-    const channelId = interaction.fields.getTextInputValue("channelid").trim();
-    if (!/^\d{17,20}$/.test(channelId)) {
-      await interaction.reply({
-        content: "Invalid channel ID. Must be a 17-20 digit number. Right-click the channel and Copy ID.",
-        ephemeral: true,
-      });
-      return;
-    }
-    await interaction.deferUpdate();
-    await setConfig("pay_log_channel_id", channelId);
-    try {
-      const cfg = await fetchServerConfig();
-      await interaction.editReply({ embeds: [buildServerEmbed(cfg)], components: buildServerComponents() });
-    } catch {
-      await interaction.followUp({ content: "Pay logs channel saved.", ephemeral: true }).catch(() => null);
+      await interaction.followUp({ content: "Saved.", ephemeral: true }).catch(() => null);
     }
     return;
   }

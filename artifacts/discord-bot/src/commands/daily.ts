@@ -69,7 +69,7 @@ function buildFrameSequence(winner: Prize, totalFrames: number): Prize[] {
 }
 
 // Delays per frame: starts fast, slows down toward the end
-const FRAME_DELAYS = [100, 120, 150, 190, 240, 310, 400, 520, 680, 880];
+const FRAME_DELAYS = [50, 60, 75, 95, 125, 165, 215, 285, 375, 500];
 
 function buildWheelEmbed(
   eligible: Prize[],
@@ -81,9 +81,9 @@ function buildWheelEmbed(
   const lines = ALL_PRIZES.map((p) => {
     const locked = !eligibleLabels.has(p.label);
     const active = activePrize && p.label === activePrize.label;
-    const arrow = active ? " ◀" : "   ";
+    const arrow = active ? "  ◀" : "    ";
     const dimmed = locked ? "~~" : "";
-    return `${active ? "**" : ""}${dimmed}${p.emoji} ${p.label} coins${dimmed}${active ? "**" : ""}${arrow}`;
+    return `${active ? "**" : ""}${dimmed}${p.label} coins${dimmed}${active ? "**" : ""}${arrow}`;
   });
 
   return new EmbedBuilder()
@@ -96,9 +96,9 @@ function buildWheelEmbed(
 function buildResultEmbed(prize: Prize, newBalance: bigint, streak: number): EmbedBuilder {
   return new EmbedBuilder()
     .setColor(0x22c55e)
-    .setTitle(`${prize.emoji} You landed on ${prize.label} coins!`)
+    .setTitle(`You landed on ${prize.label} coins!`)
     .setDescription(
-      `**+${formatCoins(prize.amount)}** added to your balance.\nNew balance: **${formatCoins(newBalance)}**`,
+      `**+${formatCoins(prize.amount)}** added to your balance.\nNew balance: **${formatCoins(newBalance)}**\n\n*Keep your streak going — a higher streak unlocks better prizes and improves your odds!*`,
     )
     .setFooter({ text: `🔥 Day streak: ${streak} · Come back in 22 hours` })
     .setTimestamp();

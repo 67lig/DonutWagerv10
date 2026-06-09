@@ -25,6 +25,9 @@ export const CHANNELS = {
 
   /** Invite flags — invite claim submissions, approvals, and denials. */
   INVITE_FLAG_LOG: "1513648681172340886",
+
+  /** Player-to-player /pay logs. */
+  PAY_LOG: "1513748228552659045",
 } as const;
 
 // ── Webhook IDs ───────────────────────────────────────────────────────────────

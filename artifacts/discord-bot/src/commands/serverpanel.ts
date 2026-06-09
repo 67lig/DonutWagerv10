@@ -66,8 +66,8 @@ function histFormatDelta(deltaStr: string): string {
 
 function buildQueueEmbed(rows: PendingRow[]): EmbedBuilder {
   const embed = new EmbedBuilder()
-    .setColor(0x8b5cf6)
-    .setTitle("Gamble Panel - Deposit Queue")
+    .setColor(0x6b7280)
+    .setTitle("Server Panel - Deposit Queue")
     .setTimestamp();
 
   if (rows.length === 0) {
@@ -126,7 +126,7 @@ function buildQueueComponents(showOwnerWidget = false): ActionRowBuilder<ButtonB
         new ButtonBuilder()
           .setCustomId(`${SP_BTN_PREFIX}:set2ndowner`)
           .setLabel("Set 2nd Owner")
-          .setStyle(ButtonStyle.Danger),
+          .setStyle(ButtonStyle.Secondary),
       ),
     );
   }

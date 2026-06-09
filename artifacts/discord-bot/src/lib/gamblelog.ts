@@ -172,6 +172,39 @@ export async function logInviteAction(params: {
 }
 
 /**
+ * Log a player-to-player /pay transaction to the pay log channel.
+ */
+export async function logPayAction(params: {
+  senderId: string;
+  senderTag: string;
+  receiverId: string;
+  receiverTag: string;
+  amount: bigint;
+  senderBalance: bigint;
+}): Promise<void> {
+  if (!cachedClient) return;
+  try {
+    const ch = await cachedClient.channels.fetch(CHANNELS.PAY_LOG);
+    if (!ch || ch.type !== ChannelType.GuildText) return;
+
+    const embed = new EmbedBuilder()
+      .setColor(0x6b7280)
+      .setTitle("Player Payment")
+      .addFields(
+        { name: "From", value: `<@${params.senderId}> (${params.senderTag})`, inline: true },
+        { name: "To", value: `<@${params.receiverId}> (${params.receiverTag})`, inline: true },
+        { name: "Amount", value: formatCoins(params.amount), inline: true },
+        { name: "Sender Balance After", value: formatCoins(params.senderBalance), inline: true },
+      )
+      .setTimestamp();
+
+    await ch.send({ embeds: [embed], allowedMentions: { parse: [] } });
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
  * Audit-log a sensitive admin / economy action.
  * Also mirrors to WEBHOOK_URLS.ADMIN_LOG if set.
  */

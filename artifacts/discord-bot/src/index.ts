@@ -111,18 +111,19 @@ async function ensurePanelPosted(client: Client<true>): Promise<void> {
 }
 
 const TOKEN = process.env.DISCORD_BOT_TOKEN;
-const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
 
-if (!TOKEN || !CLIENT_ID) {
-  console.error(
-    "Missing DISCORD_BOT_TOKEN or DISCORD_CLIENT_ID environment variable.",
-  );
+if (!TOKEN) {
+  console.error("Missing DISCORD_BOT_TOKEN environment variable.");
   process.exit(1);
 }
 
 const COMMAND_HASH_KEY = "registered_guild_commands_hash";
 
 async function registerGuildCommands(client: Client<true>): Promise<void> {
+  // Use the application ID from the live client — never rely on the
+  // DISCORD_CLIENT_ID env var which is error-prone to set correctly.
+  const appId = client.application.id;
+
   const body = commands.map((c) => c.data.toJSON());
   const hash = createHash("sha256")
     .update(JSON.stringify(body))
@@ -143,20 +144,20 @@ async function registerGuildCommands(client: Client<true>): Promise<void> {
     return;
   }
   console.log(
-    `[bot] Registering ${body.length} slash commands to ${guilds.size} guild(s)…`,
+    `[bot] Registering ${body.length} slash commands to ${guilds.size} guild(s) (appId: ${appId})…`,
   );
   let okCount = 0;
   for (const guild of guilds.values()) {
     try {
       await rest.put(
-        Routes.applicationGuildCommands(CLIENT_ID!, guild.id),
+        Routes.applicationGuildCommands(appId, guild.id),
         { body },
       );
-      console.log(`[bot] ✓ Registered for "${guild.name}" (${guild.id})`);
+      console.log(`[bot] Registered for "${guild.name}" (${guild.id})`);
       okCount++;
     } catch (err) {
       console.error(
-        `[bot] ✗ Failed to register for guild ${guild.id}:`,
+        `[bot] Failed to register for guild ${guild.id}:`,
         err,
       );
     }

@@ -4,74 +4,119 @@ import {
   type ChatInputCommandInteraction,
 } from "discord.js";
 import type { SlashCommand } from "../lib/types.js";
-import { requireVerified } from "../lib/guards.js";
-import { getConfig } from "../lib/db.js";
+import { getOrCreateUser, executePayment, getDailyPaySent } from "../lib/db.js";
+import { formatCoins, parseAmount } from "../lib/format.js";
+import { logPayAction } from "../lib/gamblelog.js";
+
+const PAY_MIN = 1n;
+const PAY_MAX = 50_000_000n;
+const PAY_DAILY_LIMIT = 50_000_000n;
 
 const command: SlashCommand = {
   data: new SlashCommandBuilder()
     .setName("pay")
-    .setDescription("Submit your payment screenshot inside a deposit ticket")
-    .addAttachmentOption((o) =>
+    .setDescription("Send coins to another player")
+    .addUserOption((o) =>
       o
-        .setName("screenshot")
-        .setDescription("Screenshot of your payment")
+        .setName("user")
+        .setDescription("The player to pay")
         .setRequired(true),
     )
     .addStringOption((o) =>
       o
-        .setName("notes")
-        .setDescription("Any additional notes (txid, sender name, etc.)")
-        .setRequired(false),
+        .setName("amount")
+        .setDescription("Amount to send (e.g. 1m, 500k, 50m)")
+        .setRequired(true),
     ),
+
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
-    const verified = await requireVerified(interaction);
-    if (!verified) return;
+    const target = interaction.options.getUser("user", true);
+    const rawAmount = interaction.options.getString("amount", true).trim();
 
-    if (!interaction.channel || !("name" in interaction.channel) || !interaction.channel.name) {
+    if (target.id === interaction.user.id) {
+      await interaction.reply({ content: "You cannot pay yourself.", ephemeral: true });
+      return;
+    }
+    if (target.bot) {
+      await interaction.reply({ content: "You cannot pay a bot.", ephemeral: true });
+      return;
+    }
+
+    const amount = parseAmount(rawAmount);
+    if (!amount || amount < PAY_MIN) {
       await interaction.reply({
-        content: "Use this inside your deposit ticket channel.",
+        content: `Minimum payment is ${formatCoins(PAY_MIN)}.`,
         ephemeral: true,
       });
       return;
     }
-    if (!interaction.channel.name.startsWith("deposit-")) {
+    if (amount > PAY_MAX) {
       await interaction.reply({
-        content:
-          "This command can only be used inside your deposit ticket. Run `/deposit` first.",
+        content: `Maximum payment per transaction is ${formatCoins(PAY_MAX)}.`,
         ephemeral: true,
       });
       return;
     }
 
-    const attachment = interaction.options.getAttachment("screenshot", true);
-    const notes = interaction.options.getString("notes");
+    await interaction.deferReply({ ephemeral: true });
 
-    if (!attachment.contentType?.startsWith("image/")) {
-      await interaction.reply({
-        content: "The screenshot must be an image.",
-        ephemeral: true,
+    // Pre-check daily limit so we can give a clear error with remaining amount.
+    const dailySent = await getDailyPaySent(interaction.user.id);
+    const remaining = PAY_DAILY_LIMIT - dailySent;
+    if (remaining <= 0n) {
+      await interaction.editReply({
+        content: `You have reached your daily pay limit of ${formatCoins(PAY_DAILY_LIMIT)}. Try again tomorrow.`,
+      });
+      return;
+    }
+    if (dailySent + amount > PAY_DAILY_LIMIT) {
+      await interaction.editReply({
+        content: `You can only send ${formatCoins(remaining)} more today (daily limit: ${formatCoins(PAY_DAILY_LIMIT)}).`,
       });
       return;
     }
 
-    const modRoleId = await getConfig("mod_role_id");
+    // Ensure sender exists in DB.
+    await getOrCreateUser(interaction.user.id);
+
+    const result = await executePayment(interaction.user.id, target.id, amount);
+
+    if (!result.ok) {
+      if (result.reason === "insufficient_funds") {
+        await interaction.editReply({ content: "You do not have enough coins to send that amount." });
+        return;
+      }
+      if (result.reason === "daily_limit") {
+        await interaction.editReply({
+          content: `Daily pay limit of ${formatCoins(PAY_DAILY_LIMIT)} reached. Try again tomorrow.`,
+        });
+        return;
+      }
+      await interaction.editReply({ content: "Payment failed. Please try again." });
+      return;
+    }
 
     const embed = new EmbedBuilder()
-      .setColor(0x3b82f6)
-      .setTitle("📸 Payment Proof Submitted")
-      .setDescription(
-        `<@${interaction.user.id}> has submitted payment proof. A moderator will verify and approve.`,
+      .setColor(0x6b7280)
+      .setTitle("Payment Sent")
+      .addFields(
+        { name: "From", value: `<@${interaction.user.id}>`, inline: true },
+        { name: "To", value: `<@${target.id}>`, inline: true },
+        { name: "Amount", value: formatCoins(amount), inline: true },
+        { name: "Your Balance", value: formatCoins(result.senderBalance), inline: true },
       )
-      .setImage(attachment.url)
-      .setFooter({
-        text: "Mods: use /admin approve <user> <amount> to credit, or /admin deny <user> <reason>.",
-      });
+      .setTimestamp();
 
-    if (notes) embed.addFields({ name: "Notes", value: notes });
+    await interaction.editReply({ embeds: [embed] });
 
-    await interaction.reply({
-      content: modRoleId ? `<@&${modRoleId}> new payment proof` : undefined,
-      embeds: [embed],
+    // Log to pay log channel.
+    void logPayAction({
+      senderId: interaction.user.id,
+      senderTag: interaction.user.tag,
+      receiverId: target.id,
+      receiverTag: target.tag,
+      amount,
+      senderBalance: result.senderBalance,
     });
   },
 };

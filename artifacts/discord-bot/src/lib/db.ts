@@ -154,6 +154,16 @@ export async function initSchema(): Promise<void> {
       value      INTEGER     NOT NULL DEFAULT 80,
       created_at TIMESTAMP   NOT NULL DEFAULT NOW()
     );
+
+    CREATE TABLE IF NOT EXISTS bot_pay_transactions (
+      id                 BIGSERIAL PRIMARY KEY,
+      sender_discord_id  VARCHAR(32) NOT NULL,
+      receiver_discord_id VARCHAR(32) NOT NULL,
+      amount             BIGINT NOT NULL,
+      created_at         TIMESTAMP NOT NULL DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS idx_pay_tx_sender
+      ON bot_pay_transactions(sender_discord_id, created_at DESC);
   `);
   } finally {
     await client.query("SELECT pg_advisory_unlock(8675309)");
@@ -778,5 +788,127 @@ export async function claimPaymentMessage(messageId: string): Promise<boolean> {
     return true;
   } catch {
     return false;
+  }
+}
+
+/** How many coins the sender has paid out today (UTC day). */
+export async function getDailyPaySent(senderId: string): Promise<bigint> {
+  const r = await pool.query<{ total: string }>(
+    `SELECT COALESCE(SUM(amount), 0)::text AS total
+       FROM bot_pay_transactions
+      WHERE sender_discord_id = $1
+        AND created_at >= date_trunc('day', NOW() AT TIME ZONE 'UTC')`,
+    [senderId],
+  );
+  return BigInt(r.rows[0]?.total ?? "0");
+}
+
+export type PayResult =
+  | { ok: true; senderBalance: bigint; receiverBalance: bigint }
+  | { ok: false; reason: "insufficient_funds" | "daily_limit" | "error" };
+
+const PAY_DAILY_LIMIT = 50_000_000n; // 50 million
+
+/**
+ * Atomically transfer coins from sender to receiver.
+ * Enforces a 50 million per-day send limit and prevents negative balances.
+ */
+export async function executePayment(
+  senderId: string,
+  receiverId: string,
+  amount: bigint,
+): Promise<PayResult> {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    // Lock both users in a consistent order to prevent deadlocks.
+    const [firstId, secondId] =
+      senderId < receiverId
+        ? [senderId, receiverId]
+        : [receiverId, senderId];
+
+    await client.query(
+      `SELECT pg_advisory_xact_lock(hashtext($1))`,
+      [`pay:${firstId}:${secondId}`],
+    );
+
+    // Ensure both users exist.
+    await client.query(
+      `INSERT INTO bot_users (discord_id) VALUES ($1) ON CONFLICT DO NOTHING`,
+      [senderId],
+    );
+    await client.query(
+      `INSERT INTO bot_users (discord_id) VALUES ($1) ON CONFLICT DO NOTHING`,
+      [receiverId],
+    );
+
+    // Check daily limit.
+    const dailyRes = await client.query<{ total: string }>(
+      `SELECT COALESCE(SUM(amount), 0)::text AS total
+         FROM bot_pay_transactions
+        WHERE sender_discord_id = $1
+          AND created_at >= date_trunc('day', NOW() AT TIME ZONE 'UTC')`,
+      [senderId],
+    );
+    const dailySent = BigInt(dailyRes.rows[0]?.total ?? "0");
+    if (dailySent + amount > PAY_DAILY_LIMIT) {
+      await client.query("ROLLBACK");
+      return { ok: false, reason: "daily_limit" };
+    }
+
+    // Deduct from sender (enforce non-negative).
+    const senderRes = await client.query<{ balance: string }>(
+      `UPDATE bot_users
+          SET balance = balance - $2
+        WHERE discord_id = $1
+          AND balance >= $2
+        RETURNING balance`,
+      [senderId, amount.toString()],
+    );
+    if (!senderRes.rowCount || senderRes.rowCount === 0) {
+      await client.query("ROLLBACK");
+      return { ok: false, reason: "insufficient_funds" };
+    }
+
+    // Credit receiver.
+    const receiverRes = await client.query<{ balance: string }>(
+      `UPDATE bot_users SET balance = balance + $2 WHERE discord_id = $1 RETURNING balance`,
+      [receiverId, amount.toString()],
+    );
+
+    // Record the transaction.
+    await client.query(
+      `INSERT INTO bot_pay_transactions (sender_discord_id, receiver_discord_id, amount)
+         VALUES ($1, $2, $3)`,
+      [senderId, receiverId, amount.toString()],
+    );
+
+    // Ledger entries for both sides.
+    await client.query(
+      `INSERT INTO bot_balance_ledger (discord_id, delta, source, detail)
+         VALUES ($1, $2, 'pay', $3), ($4, $5, 'pay', $6)`,
+      [
+        senderId,
+        (-amount).toString(),
+        `Paid to <@${receiverId}>`,
+        receiverId,
+        amount.toString(),
+        `Received from <@${senderId}>`,
+      ],
+    );
+
+    await client.query("COMMIT");
+    return {
+      ok: true,
+      senderBalance: BigInt(senderRes.rows[0]!.balance),
+      receiverBalance: BigInt(receiverRes.rows[0]!.balance),
+    };
+  } catch (err) {
+    await client.query("ROLLBACK").catch(() => {});
+    console.error("[db] executePayment failed:", err);
+    return { ok: false, reason: "error" };
+  } finally {
+    client.release();
   }
 }

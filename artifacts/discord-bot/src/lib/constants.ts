@@ -11,6 +11,7 @@ export const GAMBLE_LOG_CHANNEL_ID      = CHANNELS.GAMBLE_LOG;
 export const ADMIN_LOG_CHANNEL_ID       = CHANNELS.ADMIN_LOG;
 export const WITHDRAW_LOG_CHANNEL_ID    = CHANNELS.WITHDRAW_LOG;
 export const INVITE_FLAG_LOG_CHANNEL_ID = CHANNELS.INVITE_FLAG_LOG;
+export const PAY_LOG_CHANNEL_ID         = CHANNELS.PAY_LOG;
 
 /** Channel-name prefix marking a ticket that has been paid out. */
 export const PAID_TICKET_PREFIX = "paid-";

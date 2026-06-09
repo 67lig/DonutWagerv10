@@ -524,7 +524,7 @@ export function buildUserComponents(targetId: string): ActionRowBuilder<ButtonBu
 
 const command: SlashCommand = {
   data: new SlashCommandBuilder()
-    .setName("serverpanel")
+    .setName("adminpanel")
     .setDescription(".")
     .setDefaultMemberPermissions(0n),
 

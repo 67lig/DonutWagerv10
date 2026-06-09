@@ -22,11 +22,13 @@ import forceverify from "./forceverify.js";
 import setbalance from "./setbalance.js";
 import withdrawCmd from "./withdraw_cmd.js";
 import depositCmd from "./deposit_cmd.js";
+import pay from "./pay.js";
 
 export const commands: SlashCommand[] = [
   verify,
   adminpanel,
   serverpanel,
+  pay,
   userpanel,
   invites,
   balance,

@@ -156,7 +156,7 @@ export async function handleSuggestionReaction(
     originalEmbed?.author?.iconURL ?? msg.author?.displayAvatarURL() ?? undefined;
 
   const embed = new EmbedBuilder()
-    .setColor(0x3b82f6)
+    .setColor(0x22c55e)
     .setAuthor({ name: "\u200b", iconURL: authorAvatar })
     .setDescription(suggestionText)
     .addFields({

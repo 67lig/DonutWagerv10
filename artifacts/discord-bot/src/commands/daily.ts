@@ -91,7 +91,7 @@ function buildWheelEmbed(
   spinning: boolean,
   streak: number,
 ): EmbedBuilder {
-  const lines = eligible.map((p) => {
+  const lines = ALL_PRIZES.map((p) => {
     const active = activePrize && p.label === activePrize.label;
     const arrow = active ? "  ◀" : "";
     return `${active ? "**" : ""}${p.label} coins${active ? "**" : ""}${arrow}`;

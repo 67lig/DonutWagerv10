@@ -48,28 +48,42 @@ function spinWheel(prizes: Prize[]): Prize {
   return prizes[prizes.length - 1]!;
 }
 
+const MIN_CYCLES = 4; // every prize gets highlighted at least 4 times before landing
+const FAST_MS   = 150; // fastest frame (Discord reliably renders ~150ms intervals)
+const SLOW_MS   = 700; // slowest frame at the very end
+
 /**
- * Build an animation sequence of prize indices that:
- * - Starts at a random position
- * - Cycles forward through ALL_PRIZES
- * - Lands exactly on the winner at the final frame
+ * Cycle through ALL_PRIZES in strict sequential order, starting at a random
+ * position, and stop ONLY when we've done MIN_CYCLES full laps AND we land
+ * naturally on the winner. This guarantees no prize is ever skipped.
  */
-function buildFrameSequence(winner: Prize, totalFrames: number): Prize[] {
+function buildFrameSequence(winner: Prize): Prize[] {
   const n = ALL_PRIZES.length;
   const winnerIdx = ALL_PRIZES.findIndex((p) => p.label === winner.label);
-  const startIdx = Math.floor(Math.random() * n);
-
+  const startIdx  = Math.floor(Math.random() * n);
   const frames: Prize[] = [];
-  for (let i = 0; i < totalFrames - 1; i++) {
-    frames.push(ALL_PRIZES[(startIdx + i) % n]!);
+  let i = 0;
+  while (true) {
+    const cur = (startIdx + i) % n;
+    frames.push(ALL_PRIZES[cur]!);
+    i++;
+    if (i >= MIN_CYCLES * n && cur === winnerIdx) break;
   }
-  // Last frame is always the winner
-  frames.push(winner);
   return frames;
 }
 
-// 28 frames = exactly 4 full cycles through all 7 prizes. Starts at 20ms, eases to 537ms (~4.5s total)
-const FRAME_DELAYS = [20, 22, 25, 28, 32, 36, 41, 46, 52, 59, 67, 76, 86, 97, 110, 124, 140, 158, 179, 202, 228, 258, 291, 329, 372, 420, 475, 537];
+/**
+ * Build per-frame delay values for `count` frames using a quadratic ease-out:
+ * starts at FAST_MS, ends at SLOW_MS.
+ */
+function buildDelays(count: number): number[] {
+  const delays: number[] = [];
+  for (let i = 0; i < count - 1; i++) {
+    const t = count > 2 ? i / (count - 2) : 1;
+    delays.push(Math.round(FAST_MS + (SLOW_MS - FAST_MS) * t * t));
+  }
+  return delays;
+}
 
 function buildWheelEmbed(
   eligible: Prize[],
@@ -146,16 +160,16 @@ const command: SlashCommand = {
 
     await interaction.deferReply();
 
-    // Build the spin sequence — fast start, slow finish
-    const frames = buildFrameSequence(winner, FRAME_DELAYS.length);
+    // Build the spin sequence — visits every prize in order, no skipping
+    const frames = buildFrameSequence(winner);
+    const delays = buildDelays(frames.length);
 
     for (let i = 0; i < frames.length; i++) {
-      const frame = frames[i]!;
       const isLast = i === frames.length - 1;
       await interaction.editReply({
-        embeds: [buildWheelEmbed(eligible, frame, !isLast, currentStreak)],
+        embeds: [buildWheelEmbed(eligible, frames[i]!, !isLast, currentStreak)],
       });
-      if (!isLast) await sleep(FRAME_DELAYS[i]!);
+      if (!isLast) await sleep(delays[i]!);
     }
 
     // Credit the prize and update streak

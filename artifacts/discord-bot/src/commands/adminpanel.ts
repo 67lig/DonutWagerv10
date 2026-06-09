@@ -4,7 +4,6 @@ import {
   ButtonStyle,
   EmbedBuilder,
   ModalBuilder,
-  PermissionFlagsBits,
   SlashCommandBuilder,
   TextInputBuilder,
   TextInputStyle,
@@ -527,7 +526,7 @@ const command: SlashCommand = {
   data: new SlashCommandBuilder()
     .setName("serverpanel")
     .setDescription(".")
-    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+    .setDefaultMemberPermissions(0n),
 
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
     await interaction.deferReply({ ephemeral: true });

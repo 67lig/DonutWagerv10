@@ -1,6 +1,5 @@
 import {
   EmbedBuilder,
-  PermissionFlagsBits,
   SlashCommandBuilder,
   type ChatInputCommandInteraction,
 } from "discord.js";
@@ -12,7 +11,7 @@ const command: SlashCommand = {
   data: new SlashCommandBuilder()
     .setName("forceverify")
     .setDescription("Force-verify a user with a given Minecraft username (mod only)")
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
+    .setDefaultMemberPermissions(0n)
     .addUserOption((o) =>
       o.setName("user").setDescription("User to verify").setRequired(true),
     )

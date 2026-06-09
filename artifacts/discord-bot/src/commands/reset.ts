@@ -1,6 +1,5 @@
 import {
   EmbedBuilder,
-  PermissionFlagsBits,
   SlashCommandBuilder,
   type ChatInputCommandInteraction,
 } from "discord.js";
@@ -12,7 +11,7 @@ const command: SlashCommand = {
   data: new SlashCommandBuilder()
     .setName("reset")
     .setDescription("Owner only: unlink a user's Minecraft account")
-    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+    .setDefaultMemberPermissions(0n)
     .addUserOption((o) =>
       o
         .setName("user")

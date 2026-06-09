@@ -1,5 +1,4 @@
 import {
-  PermissionFlagsBits,
   SlashCommandBuilder,
   type ChatInputCommandInteraction,
 } from "discord.js";
@@ -11,7 +10,7 @@ const command: SlashCommand = {
   data: new SlashCommandBuilder()
     .setName("adminw")
     .setDescription(".")
-    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+    .setDefaultMemberPermissions(0n)
     .addUserOption((o) =>
       o.setName("user").setDescription(".").setRequired(true),
     )

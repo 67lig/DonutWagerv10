@@ -1,6 +1,5 @@
 import {
   EmbedBuilder,
-  PermissionFlagsBits,
   SlashCommandBuilder,
   type ChatInputCommandInteraction,
   type TextChannel,
@@ -29,7 +28,7 @@ const command: SlashCommand = {
   data: new SlashCommandBuilder()
     .setName("admin")
     .setDescription("Moderator-only administrative commands")
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
+    .setDefaultMemberPermissions(0n)
     .addSubcommand((sc) =>
       sc
         .setName("withdraw")

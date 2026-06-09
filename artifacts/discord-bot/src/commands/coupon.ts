@@ -1,6 +1,5 @@
 import {
   EmbedBuilder,
-  PermissionFlagsBits,
   SlashCommandBuilder,
   type ChatInputCommandInteraction,
 } from "discord.js";
@@ -20,7 +19,7 @@ const command: SlashCommand = {
   data: new SlashCommandBuilder()
     .setName("coupon")
     .setDescription("Admin-only: manage redeemable coupon codes")
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
+    .setDefaultMemberPermissions(0n)
     .addSubcommand((sc) =>
       sc
         .setName("create")

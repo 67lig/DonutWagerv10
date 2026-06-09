@@ -4,7 +4,6 @@ import {
   ButtonStyle,
   EmbedBuilder,
   ModalBuilder,
-  PermissionFlagsBits,
   SlashCommandBuilder,
   TextInputBuilder,
   TextInputStyle,
@@ -124,7 +123,7 @@ const command: SlashCommand = {
   data: new SlashCommandBuilder()
     .setName("gamblepanel")
     .setDescription(".")
-    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+    .setDefaultMemberPermissions(0n),
 
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
     if (!isModOrOwner(interaction)) {

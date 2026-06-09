@@ -1,6 +1,5 @@
 import {
   EmbedBuilder,
-  PermissionFlagsBits,
   SlashCommandBuilder,
   type ChatInputCommandInteraction,
   type TextChannel,
@@ -21,7 +20,7 @@ const command: SlashCommand = {
   data: new SlashCommandBuilder()
     .setName("withdraw")
     .setDescription("Mark the pending withdrawal in this channel as paid")
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
+    .setDefaultMemberPermissions(0n)
     .addUserOption((o) =>
       o.setName("user").setDescription("User to pay out").setRequired(true),
     ),

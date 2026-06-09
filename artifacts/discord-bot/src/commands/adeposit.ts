@@ -1,6 +1,5 @@
 import {
   EmbedBuilder,
-  PermissionFlagsBits,
   SlashCommandBuilder,
   type ChatInputCommandInteraction,
 } from "discord.js";
@@ -14,7 +13,7 @@ const command: SlashCommand = {
   data: new SlashCommandBuilder()
     .setName("adeposit")
     .setDescription("Deposit coins into a user's balance")
-    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+    .setDefaultMemberPermissions(0n)
     .addUserOption((o) =>
       o.setName("user").setDescription("User to deposit to").setRequired(true),
     )

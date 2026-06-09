@@ -1,6 +1,5 @@
 import {
   EmbedBuilder,
-  PermissionFlagsBits,
   SlashCommandBuilder,
   type ChatInputCommandInteraction,
 } from "discord.js";
@@ -34,7 +33,7 @@ const command: SlashCommand = {
   data: new SlashCommandBuilder()
     .setName("history")
     .setDescription("Staff: view a user's recent balance changes or game results")
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
+    .setDefaultMemberPermissions(0n)
     .addSubcommand((sc) =>
       sc
         .setName("balance")

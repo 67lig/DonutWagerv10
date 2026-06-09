@@ -25,10 +25,10 @@ interface Prize {
 }
 
 const ALL_PRIZES: Prize[] = [
-  { amount:         10_000n, label:       "10,000", weight: 20,  minStreak: 0,  emoji: "⚪" },
+  { amount:         10_000n, label:       "10,000", weight: 25,  minStreak: 0,  emoji: "⚪" },
   { amount:         25_000n, label:       "25,000", weight: 20,  minStreak: 0,  emoji: "🔵" },
   { amount:        100_000n, label:      "100,000", weight: 20,  minStreak: 0,  emoji: "🟢" },
-  { amount:        250_000n, label:      "250,000", weight: 20,  minStreak: 0,  emoji: "🟡" },
+  { amount:        250_000n, label:      "250,000", weight: 15,  minStreak: 0,  emoji: "🟡" },
   { amount:      1_000_000n, label:    "1,000,000", weight: 7.5, minStreak: 5,  emoji: "🟠" },
   { amount:     10_000_000n, label:   "10,000,000", weight: 2,   minStreak: 10, emoji: "🔴" },
   { amount:    100_000_000n, label:  "100,000,000", weight: 0.5, minStreak: 20, emoji: "💎" },
@@ -68,8 +68,8 @@ function buildFrameSequence(winner: Prize, totalFrames: number): Prize[] {
   return frames;
 }
 
-// Delays per frame: starts fast, slows down toward the end
-const FRAME_DELAYS = [50, 60, 75, 95, 125, 165, 215, 285, 375, 500];
+// 28 frames = exactly 4 full cycles through all 7 prizes. Starts at 20ms, eases to 537ms (~4.5s total)
+const FRAME_DELAYS = [20, 22, 25, 28, 32, 36, 41, 46, 52, 59, 67, 76, 86, 97, 110, 124, 140, 158, 179, 202, 228, 258, 291, 329, 372, 420, 475, 537];
 
 function buildWheelEmbed(
   eligible: Prize[],
@@ -98,7 +98,7 @@ function buildResultEmbed(prize: Prize, newBalance: bigint, streak: number): Emb
     .setColor(0x22c55e)
     .setTitle(`You landed on ${prize.label} coins!`)
     .setDescription(
-      `**+${formatCoins(prize.amount)}** added to your balance.\nNew balance: **${formatCoins(newBalance)}**\n\n*Keep your streak going — a higher streak unlocks better prizes and improves your odds!*`,
+      `**+${formatCoins(prize.amount)}** added to your balance.\nNew balance: **${formatCoins(newBalance)}**\n\nKeep your streak going. A higher streak unlocks better prizes and improves your odds!`,
     )
     .setFooter({ text: `🔥 Day streak: ${streak} · Come back in 22 hours` })
     .setTimestamp();

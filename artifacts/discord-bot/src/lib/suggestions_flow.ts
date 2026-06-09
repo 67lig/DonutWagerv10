@@ -75,7 +75,7 @@ export async function updateStickyMessage(
       if (old) await (old as Message).delete().catch(() => null);
     }
 
-    const sent = await ch.send({ content: buildStickyContent(t) });
+    const sent = await ch.send({ content: await buildStickyContent(t) });
     await setConfig(STICKY_MSG_KEY, sent.id);
   } catch (err) {
     console.error("[suggestions] updateStickyMessage failed:", err);

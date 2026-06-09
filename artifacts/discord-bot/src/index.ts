@@ -20,6 +20,7 @@ import {
   setConfig,
   setVerified,
 } from "./lib/db.js";
+import { setSecondOwnerIdCache } from "./lib/owners.js";
 import { setLogClient } from "./lib/gamblelog.js";
 import { isMod } from "./lib/permissions.js";
 import {
@@ -269,6 +270,13 @@ async function handleVerifyButton(
 async function main(): Promise<void> {
   console.log("[bot] Initializing database schema…");
   await initSchema();
+
+  // Load 2nd owner from DB into memory so permission checks stay synchronous.
+  const storedSecondOwner = await getConfig("second_owner_id");
+  if (storedSecondOwner) {
+    setSecondOwnerIdCache(storedSecondOwner);
+    console.log(`[bot] 2nd owner loaded: ${storedSecondOwner}`);
+  }
 
   const client = new Client({
     intents: [

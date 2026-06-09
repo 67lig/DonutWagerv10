@@ -318,11 +318,37 @@ export async function handleServerPanelButton(
     return;
   }
 
+  if (action === "set2ndowner") {
+    if (!isFullOwner(interaction)) {
+      await interaction.reply({ content: "Only the Full Owner can set a 2nd owner.", ephemeral: true });
+      return;
+    }
+    const currentId = getSecondOwnerId();
+    const modal = new ModalBuilder()
+      .setCustomId(`${SP_MODAL_PREFIX}:set2ndowner`)
+      .setTitle("Set 2nd Owner");
+    modal.addComponents(
+      new ActionRowBuilder<TextInputBuilder>().addComponents(
+        new TextInputBuilder()
+          .setCustomId("userid")
+          .setLabel("Discord User ID of new 2nd owner")
+          .setPlaceholder(currentId ?? "123456789012345678")
+          .setValue(currentId ?? "")
+          .setMinLength(17)
+          .setMaxLength(20)
+          .setRequired(true)
+          .setStyle(TextInputStyle.Short),
+      ),
+    );
+    await interaction.showModal(modal);
+    return;
+  }
+
   await interaction.deferUpdate();
   const rows = await fetchPending();
   await interaction.editReply({
     embeds: [buildQueueEmbed(rows)],
-    components: buildQueueComponents(),
+    components: buildQueueComponents(isFullOwner(interaction)),
   });
 }
 
@@ -335,6 +361,31 @@ export async function handleServerPanelModal(
   }
 
   const action = interaction.customId.split(":")[1];
+
+  if (action === "set2ndowner") {
+    if (!isFullOwner(interaction)) {
+      await interaction.reply({ content: "Only the Full Owner can set a 2nd owner.", ephemeral: true });
+      return;
+    }
+    const userId = interaction.fields.getTextInputValue("userid").trim();
+    if (!/^\d{17,20}$/.test(userId)) {
+      await interaction.reply({ content: "Invalid user ID — must be a 17–20 digit number.", ephemeral: true });
+      return;
+    }
+    await setConfig("second_owner_id", userId);
+    setSecondOwnerIdCache(userId);
+    await interaction.reply({
+      ephemeral: true,
+      embeds: [
+        new EmbedBuilder()
+          .setColor(0xf59e0b)
+          .setTitle("2nd Owner Updated")
+          .setDescription(`<@${userId}> now has full owner commands.\nThey cannot change this setting.`)
+          .setTimestamp(),
+      ],
+    });
+    return;
+  }
 
   if (action === "approve" || action === "deposit") {
     const userId = interaction.fields.getTextInputValue("userid").trim();

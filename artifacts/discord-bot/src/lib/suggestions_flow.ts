@@ -88,6 +88,8 @@ export async function updateStickyMessage(
   }
 }
 
+const _processedMsgIds = new Set<string>();
+
 export async function handleSuggestionsMessage(
   message: Message | PartialMessage,
 ): Promise<void> {
@@ -95,6 +97,12 @@ export async function handleSuggestionsMessage(
 
   // Bot-posted messages are managed externally (e.g. /suggest handles sticky).
   if (message.author?.bot) return;
+
+  // Deduplicate: discord.js can fire MessageCreate twice for the same message
+  // when partials are enabled and the channel is not fully cached.
+  if (_processedMsgIds.has(message.id)) return;
+  _processedMsgIds.add(message.id);
+  setTimeout(() => _processedMsgIds.delete(message.id), 5000);
 
   // Delete any direct user message — submissions must go through /suggest.
   try {

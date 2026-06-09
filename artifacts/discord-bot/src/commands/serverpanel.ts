@@ -29,7 +29,9 @@ import { setSecondOwnerIdCache, getSecondOwnerId } from "../lib/owners.js";
 import { setConfig } from "../lib/db.js";
 import {
   getThreshold,
+  getStickyText,
   setThreshold,
+  setStickyText,
   updateStickyMessage,
 } from "../lib/suggestions_flow.js";
 
@@ -173,6 +175,10 @@ function buildSuggestionsComponents(): ActionRowBuilder<ButtonBuilder>[] {
         .setCustomId(`${SP_BTN_PREFIX}:sugg_set5`)
         .setLabel("Set Min: 5")
         .setStyle(ButtonStyle.Primary),
+      new ButtonBuilder()
+        .setCustomId(`${SP_BTN_PREFIX}:sugg_edit`)
+        .setLabel("Edit Sticky Message")
+        .setStyle(ButtonStyle.Secondary),
       new ButtonBuilder()
         .setCustomId(`${SP_BTN_PREFIX}:sugg_refresh`)
         .setLabel("Refresh Sticky")
@@ -403,6 +409,28 @@ export async function handleServerPanelButton(
     return;
   }
 
+  if (action === "sugg_edit") {
+    const currentText = await getStickyText();
+    const modal = new ModalBuilder()
+      .setCustomId(`${SP_MODAL_PREFIX}:sugg_edit`)
+      .setTitle("Edit Sticky Message");
+    modal.addComponents(
+      new ActionRowBuilder<TextInputBuilder>().addComponents(
+        new TextInputBuilder()
+          .setCustomId("text")
+          .setLabel("Sticky message text")
+          .setPlaceholder("Use {threshold} and {emoji} as placeholders")
+          .setValue(currentText)
+          .setMinLength(5)
+          .setMaxLength(300)
+          .setRequired(true)
+          .setStyle(TextInputStyle.Paragraph),
+      ),
+    );
+    await interaction.showModal(modal);
+    return;
+  }
+
   if (action === "set2ndowner") {
     if (!isFullOwner(interaction)) {
       await interaction.reply({ content: "Only the Full Owner can set a 2nd owner.", ephemeral: true });
@@ -445,6 +473,24 @@ export async function handleServerPanelModal(
   }
 
   const action = interaction.customId.split(":")[1];
+
+  if (action === "sugg_edit") {
+    const text = interaction.fields.getTextInputValue("text").trim();
+    await setStickyText(text);
+    await updateStickyMessage(interaction.client);
+    const threshold = await getThreshold();
+    await interaction.reply({
+      ephemeral: true,
+      embeds: [
+        new EmbedBuilder()
+          .setColor(0x22c55e)
+          .setTitle("✅ Sticky Updated")
+          .setDescription(`New sticky message saved and refreshed in <#${CHANNELS.SUGGESTIONS}>.\n\n**Preview:**\n${text.replace("{threshold}", String(threshold)).replace("{emoji}", "[emoji]")}`)
+          .setTimestamp(),
+      ],
+    });
+    return;
+  }
 
   if (action === "set2ndowner") {
     if (!isFullOwner(interaction)) {

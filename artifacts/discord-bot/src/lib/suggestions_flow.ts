@@ -14,8 +14,20 @@ import { CHANNELS, SUGGESTION_EMOJI_ID } from "./config.js";
 const STICKY_MSG_KEY = "suggestions_sticky_msg_id";
 const THRESHOLD_KEY = "suggestions_threshold";
 const COUNT_KEY = "suggestions_count";
+const STICKY_TEXT_KEY = "suggestions_sticky_text";
 
 const EMOJI_STR = `<:donutemoji:${SUGGESTION_EMOJI_ID}>`;
+
+const DEFAULT_STICKY_TEXT =
+  `When your suggestion gets {threshold} {emoji} reactions it will be put in top suggestions.`;
+
+export async function getStickyText(): Promise<string> {
+  return (await getConfig(STICKY_TEXT_KEY)) ?? DEFAULT_STICKY_TEXT;
+}
+
+export async function setStickyText(text: string): Promise<void> {
+  await setConfig(STICKY_TEXT_KEY, text);
+}
 
 export async function getThreshold(): Promise<number> {
   const v = await getConfig(THRESHOLD_KEY);
@@ -33,8 +45,12 @@ async function nextSuggestionNumber(): Promise<number> {
   return next;
 }
 
-function buildStickyContent(threshold: number): string {
-  return `When your suggestion gets ${threshold} ${EMOJI_STR} reactions it will be put in top suggestions.`;
+async function buildStickyContent(threshold: number): Promise<string> {
+  const template = await getStickyText();
+  const resolved = template
+    .replace("{threshold}", String(threshold))
+    .replace("{emoji}", EMOJI_STR);
+  return `-# ${resolved}`;
 }
 
 export async function updateStickyMessage(

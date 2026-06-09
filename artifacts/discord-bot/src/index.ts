@@ -66,6 +66,10 @@ import {
   updateStickyMessage,
   STICKY_MSG_KEY,
 } from "./lib/suggestions_flow.js";
+import {
+  CLOSE_REQ_BTN_PREFIX,
+  handleCloseRequestButton,
+} from "./commands/closerequest.js";
 import { CHANNELS } from "./lib/config.js";
 
 // DB keys for remembering where the panel is posted.
@@ -425,6 +429,10 @@ async function main(): Promise<void> {
         }
         if (interaction.customId.startsWith(`${DEP_TICKET_BTN_PREFIX}:`)) {
           await handleDepositTicketButton(interaction);
+          return;
+        }
+        if (interaction.customId.startsWith(`${CLOSE_REQ_BTN_PREFIX}:`)) {
+          await handleCloseRequestButton(interaction);
           return;
         }
         return;

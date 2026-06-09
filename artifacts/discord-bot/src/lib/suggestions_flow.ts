@@ -71,6 +71,9 @@ export async function updateStickyMessage(
 
     const oldId = await getConfig(STICKY_MSG_KEY);
     if (oldId) {
+      // Clear stored key BEFORE deleting so the MessageDelete watcher
+      // does not trigger a second updateStickyMessage call mid-update.
+      await setConfig(STICKY_MSG_KEY, "");
       const old = await ch.messages.fetch(oldId).catch(() => null);
       if (old) await (old as Message).delete().catch(() => null);
     }
@@ -86,18 +89,31 @@ export async function handleSuggestionsMessage(
   message: Message | PartialMessage,
 ): Promise<void> {
   if (message.channelId !== CHANNELS.SUGGESTIONS) return;
-  if (message.author?.bot) return;
 
-  // Auto-react with the suggestion emoji so users can click it
-  try {
-    const fullMsg = message.partial ? await message.fetch() : message;
-    await fullMsg.react(SUGGESTION_EMOJI_ID);
-  } catch (err) {
-    console.error("[suggestions] Auto-react failed:", err);
+  // Bot-posted suggestions are valid — add reaction and move sticky.
+  if (message.author?.bot) {
+    // Only react/sticky for non-sticky bot messages (the sticky itself is content-only).
+    const fullMsg = message.partial ? await message.fetch().catch(() => null) : message;
+    if (!fullMsg) return;
+    // If the message has embeds it is a suggestion (not the sticky text).
+    if ((fullMsg.embeds?.length ?? 0) > 0) {
+      await updateStickyMessage(message.client as Client);
+    }
+    return;
   }
 
-  // Move sticky to bottom
-  await updateStickyMessage(message.client as Client);
+  // Delete any direct user message — submissions must go through /suggest.
+  try {
+    const fullMsg = message.partial ? await message.fetch() : message;
+    await (fullMsg as Message).delete().catch(() => null);
+    await (fullMsg as Message).author
+      ?.send(
+        "Use **/suggest** to submit a suggestion. Direct messages in that channel are not allowed.",
+      )
+      .catch(() => null);
+  } catch (err) {
+    console.error("[suggestions] Failed to delete direct message:", err);
+  }
 }
 
 export async function handleSuggestionReaction(

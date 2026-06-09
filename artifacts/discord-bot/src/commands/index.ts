@@ -23,6 +23,8 @@ import setbalance from "./setbalance.js";
 import withdrawCmd from "./withdraw_cmd.js";
 import depositCmd from "./deposit_cmd.js";
 import pay from "./pay.js";
+import suggest from "./suggest.js";
+import closerequest from "./closerequest.js";
 
 export const commands: SlashCommand[] = [
   verify,
@@ -49,6 +51,8 @@ export const commands: SlashCommand[] = [
   setbalance,
   withdrawCmd,
   depositCmd,
+  suggest,
+  closerequest,
 ];
 
 export const commandMap: Map<string, SlashCommand> = new Map(

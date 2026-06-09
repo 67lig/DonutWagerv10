@@ -33,7 +33,7 @@ import {
   pool,
   type BotUser,
 } from "../lib/db.js";
-import { formatCoins, parseAmount } from "../lib/format.js";
+import { formatCoins, formatCoinsShort, parseAmount } from "../lib/format.js";
 import { logAdminAction, logInviteAction } from "../lib/gamblelog.js";
 import { buildPanelMessage } from "../lib/panel_flow.js";
 import {
@@ -240,6 +240,10 @@ function buildServerComponents(): ActionRowBuilder<ButtonBuilder>[] {
     new ButtonBuilder()
       .setCustomId(`${AP_BTN_PREFIX}:srv_setinvitelog`)
       .setLabel("Set Invite Log")
+      .setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder()
+      .setCustomId(`${AP_BTN_PREFIX}:srv_paylogs`)
+      .setLabel("Pay Logs")
       .setStyle(ButtonStyle.Secondary),
   );
   return [row1, row2, row3];
@@ -524,7 +528,7 @@ export function buildUserComponents(targetId: string): ActionRowBuilder<ButtonBu
 
 const command: SlashCommand = {
   data: new SlashCommandBuilder()
-    .setName("adminpanel")
+    .setName("gamblepanel")
     .setDescription(".")
     .setDefaultMemberPermissions(0n),
 
@@ -1141,6 +1145,36 @@ async function handleServerButton(
       ),
     );
     await interaction.showModal(modal);
+    return;
+  }
+
+  if (action === "srv_paylogs") {
+    const res = await pool.query<{
+      sender_discord_id: string;
+      receiver_discord_id: string;
+      amount: string;
+      created_at: Date;
+    }>(
+      `SELECT sender_discord_id, receiver_discord_id, amount, created_at
+         FROM bot_pay_transactions
+        ORDER BY created_at DESC
+        LIMIT 20`,
+    );
+    const lines = res.rows.map((r) => {
+      const ts = Math.floor(new Date(r.created_at).getTime() / 1000);
+      return `<@${r.sender_discord_id}> → <@${r.receiver_discord_id}> **${formatCoinsShort(BigInt(r.amount))}** <t:${ts}:R>`;
+    });
+    await interaction.reply({
+      ephemeral: true,
+      embeds: [
+        new EmbedBuilder()
+          .setColor(0x6366f1)
+          .setTitle("Recent Pay Transactions")
+          .setDescription(lines.length ? lines.join("\n") : "_No transactions yet._")
+          .setFooter({ text: "Last 20 /pay transfers" })
+          .setTimestamp(),
+      ],
+    });
     return;
   }
 

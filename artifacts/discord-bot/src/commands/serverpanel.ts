@@ -107,7 +107,7 @@ function buildQueueComponents(showOwnerWidget = false): ActionRowBuilder<ButtonB
       .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
       .setCustomId(`${SP_BTN_PREFIX}:suggestions`)
-      .setLabel("Gamblepanel")
+      .setLabel("Suggestions")
       .setStyle(ButtonStyle.Secondary),
   ];
 

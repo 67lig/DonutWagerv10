@@ -46,6 +46,14 @@ import {
 } from "../lib/invite_flow.js";
 import { CATEGORY_CONFIG_KEYS } from "../lib/tickets.js";
 import { getHouseRates, saveHouseRates, DEFAULT_RATES, type HouseRates } from "../lib/houserates.js";
+import { CHANNELS } from "../lib/config.js";
+import {
+  getThreshold,
+  getStickyText,
+  setThreshold,
+  setStickyText,
+  updateStickyMessage,
+} from "../lib/suggestions_flow.js";
 
 export const AP_BTN_PREFIX = "ap";
 export const AP_MODAL_PREFIX = "ap_modal";
@@ -84,10 +92,11 @@ interface ServerConfig {
   inviteCoinsPerInvite: bigint;
   inviteClaimTiers: number[];
   inviteLogChannelId: string | null;
+  payLogsChannelId: string | null;
 }
 
 async function fetchServerConfig(): Promise<ServerConfig> {
-  const [modRole, depCat, wdCat, vfCat, gambleCat, paymentCat, inviteFlagsCat, coupons, houseRates, invCfg, inviteLogChannelId] = await Promise.all([
+  const [modRole, depCat, wdCat, vfCat, gambleCat, paymentCat, inviteFlagsCat, coupons, houseRates, invCfg, inviteLogChannelId, payLogsChannelId] = await Promise.all([
     getConfig("mod_role_id"),
     getConfig(CATEGORY_CONFIG_KEYS.deposit),
     getConfig(CATEGORY_CONFIG_KEYS.withdraw),
@@ -99,6 +108,7 @@ async function fetchServerConfig(): Promise<ServerConfig> {
     getHouseRates(),
     getInviteConfig(),
     getConfig("invite_flag_log_channel_id"),
+    getConfig("pay_log_channel_id"),
   ]);
   const now = Date.now();
   const activeCoupons = coupons.filter(
@@ -116,6 +126,7 @@ async function fetchServerConfig(): Promise<ServerConfig> {
     inviteCoinsPerInvite: invCfg.coinsPerInvite,
     inviteClaimTiers: invCfg.claimTiers,
     inviteLogChannelId: inviteLogChannelId ?? null,
+    payLogsChannelId: payLogsChannelId ?? null,
   };
 }
 
@@ -164,6 +175,11 @@ function buildServerEmbed(cfg: ServerConfig): EmbedBuilder {
       {
         name: "Invite Flags Category",
         value: cfg.inviteFlagsCat ? "Set" : "_not set_",
+        inline: true,
+      },
+      {
+        name: "Pay Logs Channel",
+        value: cfg.payLogsChannelId ? `<#${cfg.payLogsChannelId}>` : "_not set_",
         inline: true,
       },
       {
@@ -242,11 +258,51 @@ function buildServerComponents(): ActionRowBuilder<ButtonBuilder>[] {
       .setLabel("Set Invite Log")
       .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
-      .setCustomId(`${AP_BTN_PREFIX}:srv_paylogs`)
-      .setLabel("Pay Logs")
+      .setCustomId(`${AP_BTN_PREFIX}:srv_setpaylogs`)
+      .setLabel("Set Pay Logs")
+      .setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder()
+      .setCustomId(`${AP_BTN_PREFIX}:srv_suggestions`)
+      .setLabel("Suggestions")
       .setStyle(ButtonStyle.Secondary),
   );
   return [row1, row2, row3];
+}
+
+function buildApSuggestionsEmbed(threshold: number): EmbedBuilder {
+  return new EmbedBuilder()
+    .setTitle("Suggestions Settings")
+    .setDescription(
+      `Suggestions channel: <#${CHANNELS.SUGGESTIONS}>\n` +
+      `Top Suggestions channel: <#${CHANNELS.TOP_SUGGESTIONS}>\n\n` +
+      `Current reaction threshold: \`${threshold}\`\n` +
+      `Users who react ${threshold} times promote a suggestion to top suggestions.\n\n` +
+      `Use the buttons below to change the threshold or refresh the sticky message.`,
+    )
+    .setTimestamp();
+}
+
+function buildApSuggestionsComponents(): ActionRowBuilder<ButtonBuilder>[] {
+  return [
+    new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`${AP_BTN_PREFIX}:srv_sugg_setmin`)
+        .setLabel("Set Threshold")
+        .setStyle(ButtonStyle.Primary),
+      new ButtonBuilder()
+        .setCustomId(`${AP_BTN_PREFIX}:srv_sugg_edit`)
+        .setLabel("Edit Sticky Message")
+        .setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder()
+        .setCustomId(`${AP_BTN_PREFIX}:srv_sugg_refresh`)
+        .setLabel("Refresh Sticky")
+        .setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder()
+        .setCustomId(`${AP_BTN_PREFIX}:srv_refresh`)
+        .setLabel("Back")
+        .setStyle(ButtonStyle.Secondary),
+    ),
+  ];
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1148,32 +1204,87 @@ async function handleServerButton(
     return;
   }
 
-  if (action === "srv_paylogs") {
-    const res = await pool.query<{
-      sender_discord_id: string;
-      receiver_discord_id: string;
-      amount: string;
-      created_at: Date;
-    }>(
-      `SELECT sender_discord_id, receiver_discord_id, amount, created_at
-         FROM bot_pay_transactions
-        ORDER BY created_at DESC
-        LIMIT 20`,
+  if (action === "srv_setpaylogs") {
+    const modal = new ModalBuilder()
+      .setCustomId(`${AP_MODAL_PREFIX}:srv_setpaylogs`)
+      .setTitle("Set Pay Logs Channel");
+    modal.addComponents(
+      new ActionRowBuilder<TextInputBuilder>().addComponents(
+        new TextInputBuilder()
+          .setCustomId("channelid")
+          .setLabel("Channel ID (right-click channel and Copy ID)")
+          .setPlaceholder("paste channel ID here")
+          .setMinLength(17)
+          .setMaxLength(20)
+          .setRequired(true)
+          .setStyle(TextInputStyle.Short),
+      ),
     );
-    const lines = res.rows.map((r) => {
-      const ts = Math.floor(new Date(r.created_at).getTime() / 1000);
-      return `<@${r.sender_discord_id}> → <@${r.receiver_discord_id}> **${formatCoinsShort(BigInt(r.amount))}** <t:${ts}:R>`;
+    await interaction.showModal(modal);
+    return;
+  }
+
+  if (action === "srv_suggestions") {
+    await interaction.deferUpdate();
+    const threshold = await getThreshold();
+    await interaction.editReply({
+      embeds: [buildApSuggestionsEmbed(threshold)],
+      components: buildApSuggestionsComponents(),
     });
-    await interaction.reply({
-      ephemeral: true,
-      embeds: [
-        new EmbedBuilder()
-          .setColor(0x6366f1)
-          .setTitle("Recent Pay Transactions")
-          .setDescription(lines.length ? lines.join("\n") : "_No transactions yet._")
-          .setFooter({ text: "Last 20 /pay transfers" })
-          .setTimestamp(),
-      ],
+    return;
+  }
+
+  if (action === "srv_sugg_setmin") {
+    const currentThreshold = await getThreshold();
+    const modal = new ModalBuilder()
+      .setCustomId(`${AP_MODAL_PREFIX}:srv_sugg_setmin`)
+      .setTitle("Set Reaction Threshold");
+    modal.addComponents(
+      new ActionRowBuilder<TextInputBuilder>().addComponents(
+        new TextInputBuilder()
+          .setCustomId("threshold")
+          .setLabel("Minimum reactions to promote a suggestion")
+          .setPlaceholder("5")
+          .setValue(String(currentThreshold))
+          .setMinLength(1)
+          .setMaxLength(3)
+          .setRequired(true)
+          .setStyle(TextInputStyle.Short),
+      ),
+    );
+    await interaction.showModal(modal);
+    return;
+  }
+
+  if (action === "srv_sugg_edit") {
+    const currentText = await getStickyText();
+    const modal = new ModalBuilder()
+      .setCustomId(`${AP_MODAL_PREFIX}:srv_sugg_edit`)
+      .setTitle("Edit Sticky Message");
+    modal.addComponents(
+      new ActionRowBuilder<TextInputBuilder>().addComponents(
+        new TextInputBuilder()
+          .setCustomId("text")
+          .setLabel("Sticky message text")
+          .setPlaceholder("Use {threshold} and {emoji} as placeholders")
+          .setValue(currentText)
+          .setMinLength(5)
+          .setMaxLength(300)
+          .setRequired(true)
+          .setStyle(TextInputStyle.Paragraph),
+      ),
+    );
+    await interaction.showModal(modal);
+    return;
+  }
+
+  if (action === "srv_sugg_refresh") {
+    await interaction.deferUpdate();
+    await updateStickyMessage(interaction.client);
+    const threshold = await getThreshold();
+    await interaction.editReply({
+      embeds: [buildApSuggestionsEmbed(threshold)],
+      components: buildApSuggestionsComponents(),
     });
     return;
   }
@@ -1532,8 +1643,71 @@ async function handleServerModal(
     }
     await interaction.deferUpdate();
     await setConfig(CATEGORY_CONFIG_KEYS[kind as ValidKind], catId);
-    const cfg = await fetchServerConfig();
-    await interaction.editReply({ embeds: [buildServerEmbed(cfg)], components: buildServerComponents() });
+    try {
+      const cfg = await fetchServerConfig();
+      await interaction.editReply({ embeds: [buildServerEmbed(cfg)], components: buildServerComponents() });
+    } catch {
+      await interaction.followUp({ content: "Category saved.", ephemeral: true }).catch(() => null);
+    }
+    return;
+  }
+
+  if (action === "srv_setpaylogs") {
+    const channelId = interaction.fields.getTextInputValue("channelid").trim();
+    if (!/^\d{17,20}$/.test(channelId)) {
+      await interaction.reply({
+        content: "Invalid channel ID. Must be a 17-20 digit number. Right-click the channel and Copy ID.",
+        ephemeral: true,
+      });
+      return;
+    }
+    await interaction.deferUpdate();
+    await setConfig("pay_log_channel_id", channelId);
+    try {
+      const cfg = await fetchServerConfig();
+      await interaction.editReply({ embeds: [buildServerEmbed(cfg)], components: buildServerComponents() });
+    } catch {
+      await interaction.followUp({ content: "Pay logs channel saved.", ephemeral: true }).catch(() => null);
+    }
+    return;
+  }
+
+  if (action === "srv_sugg_setmin") {
+    const raw = interaction.fields.getTextInputValue("threshold").trim();
+    const n = parseInt(raw, 10);
+    if (isNaN(n) || n < 1 || n > 100) {
+      await interaction.reply({ content: "Please enter a number between 1 and 100.", ephemeral: true });
+      return;
+    }
+    await setThreshold(n);
+    await updateStickyMessage(interaction.client);
+    const threshold = await getThreshold();
+    await interaction.reply({
+      ephemeral: true,
+      embeds: [
+        new EmbedBuilder()
+          .setTitle("Threshold Updated")
+          .setDescription(`Reaction threshold set to **${threshold}**. Sticky message refreshed.`)
+          .setTimestamp(),
+      ],
+    });
+    return;
+  }
+
+  if (action === "srv_sugg_edit") {
+    const text = interaction.fields.getTextInputValue("text").trim();
+    await setStickyText(text);
+    await updateStickyMessage(interaction.client);
+    const threshold = await getThreshold();
+    await interaction.reply({
+      ephemeral: true,
+      embeds: [
+        new EmbedBuilder()
+          .setTitle("Sticky Updated")
+          .setDescription(`New sticky message saved and refreshed in <#${CHANNELS.SUGGESTIONS}>.\n\nPreview:\n${text.replace("{threshold}", String(threshold)).replace("{emoji}", "[emoji]")}`)
+          .setTimestamp(),
+      ],
+    });
     return;
   }
 

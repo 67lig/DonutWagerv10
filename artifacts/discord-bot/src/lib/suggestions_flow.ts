@@ -13,6 +13,9 @@ import { CHANNELS, SUGGESTION_EMOJI_ID } from "./config.js";
 
 const STICKY_MSG_KEY = "suggestions_sticky_msg_id";
 const THRESHOLD_KEY = "suggestions_threshold";
+const COUNT_KEY = "suggestions_count";
+
+const EMOJI_STR = `<:donutemoji:${SUGGESTION_EMOJI_ID}>`;
 
 export async function getThreshold(): Promise<number> {
   const v = await getConfig(THRESHOLD_KEY);
@@ -23,8 +26,15 @@ export async function setThreshold(n: number): Promise<void> {
   await setConfig(THRESHOLD_KEY, String(n));
 }
 
+async function nextSuggestionNumber(): Promise<number> {
+  const v = await getConfig(COUNT_KEY);
+  const next = (v ? parseInt(v, 10) : 0) + 1;
+  await setConfig(COUNT_KEY, String(next));
+  return next;
+}
+
 function buildStickyContent(threshold: number): string {
-  return `When your suggestion gets ${threshold} <:donutemoji:${SUGGESTION_EMOJI_ID}> reactions it will be put in top suggestions.`;
+  return `When your suggestion gets ${threshold} ${EMOJI_STR} reactions it will be put in top suggestions.`;
 }
 
 export async function updateStickyMessage(
@@ -62,6 +72,15 @@ export async function handleSuggestionsMessage(
   if (message.channelId !== CHANNELS.SUGGESTIONS) return;
   if (message.author?.bot) return;
 
+  // Auto-react with the suggestion emoji so users can click it
+  try {
+    const fullMsg = message.partial ? await message.fetch() : message;
+    await fullMsg.react(SUGGESTION_EMOJI_ID);
+  } catch (err) {
+    console.error("[suggestions] Auto-react failed:", err);
+  }
+
+  // Move sticky to bottom
   await updateStickyMessage(message.client as Client);
 }
 
@@ -96,22 +115,24 @@ export async function handleSuggestionReaction(
     .catch(() => null);
   if (!topChannel || !topChannel.isTextBased() || !("send" in topChannel)) return;
 
+  const num = await nextSuggestionNumber();
+  const authorName = msg.author?.username ?? msg.author?.tag ?? "Unknown";
+  const authorAvatar = msg.author?.displayAvatarURL() ?? undefined;
+
   const embed = new EmbedBuilder()
-    .setColor(0xf59e0b)
+    .setColor(0x22c55e)
+    .setAuthor({ name: authorName, iconURL: authorAvatar })
     .setDescription(msg.content || "*[no text]*")
-    .setAuthor({
-      name: msg.author?.tag ?? "Unknown",
-      iconURL: msg.author?.displayAvatarURL() ?? undefined,
-    })
     .addFields({
-      name: "Reactions",
-      value: `${count} <:donutemoji:${SUGGESTION_EMOJI_ID}>`,
-      inline: true,
+      name: "\u200b",
+      value: `<#${CHANNELS.SUGGESTIONS}>\n[Jump to message](${msg.url})`,
     })
-    .setURL(msg.url)
     .setTimestamp(msg.createdAt ?? undefined);
 
   await (
     topChannel as { send: (opts: unknown) => Promise<unknown> }
-  ).send({ embeds: [embed] });
+  ).send({
+    content: `${EMOJI_STR} **#${num}**`,
+    embeds: [embed],
+  });
 }

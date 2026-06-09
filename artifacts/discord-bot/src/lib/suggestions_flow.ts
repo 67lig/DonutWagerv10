@@ -93,17 +93,8 @@ export async function handleSuggestionsMessage(
 ): Promise<void> {
   if (message.channelId !== CHANNELS.SUGGESTIONS) return;
 
-  // Bot-posted suggestions are valid — add reaction and move sticky.
-  if (message.author?.bot) {
-    // Only react/sticky for non-sticky bot messages (the sticky itself is content-only).
-    const fullMsg = message.partial ? await message.fetch().catch(() => null) : message;
-    if (!fullMsg) return;
-    // If the message has embeds it is a suggestion (not the sticky text).
-    if ((fullMsg.embeds?.length ?? 0) > 0) {
-      await updateStickyMessage(message.client as Client);
-    }
-    return;
-  }
+  // Bot-posted messages are managed externally (e.g. /suggest handles sticky).
+  if (message.author?.bot) return;
 
   // Delete any direct user message — submissions must go through /suggest.
   try {
@@ -151,13 +142,15 @@ export async function handleSuggestionReaction(
   if (!topChannel || !topChannel.isTextBased() || !("send" in topChannel)) return;
 
   const num = await nextSuggestionNumber();
-  const authorName = msg.author?.username ?? msg.author?.tag ?? "Unknown";
-  const authorAvatar = msg.author?.displayAvatarURL() ?? undefined;
+  const originalEmbed = msg.embeds?.[0];
+  const suggestionText = originalEmbed?.description ?? msg.content ?? "*[no text]*";
+  const authorAvatar =
+    originalEmbed?.author?.iconURL ?? msg.author?.displayAvatarURL() ?? undefined;
 
   const embed = new EmbedBuilder()
-    .setColor(0x22c55e)
-    .setAuthor({ name: authorName, iconURL: authorAvatar })
-    .setDescription(msg.content || "*[no text]*")
+    .setColor(0x3b82f6)
+    .setAuthor({ name: "\u200b", iconURL: authorAvatar })
+    .setDescription(suggestionText)
     .addFields({
       name: "\u200b",
       value: `<#${CHANNELS.SUGGESTIONS}>\n[Jump to message](${msg.url})`,

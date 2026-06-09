@@ -38,8 +38,9 @@ const command: SlashCommand = {
     await interaction.reply({ content: "Suggestion submitted!", ephemeral: true });
 
     const embed = new EmbedBuilder()
+      .setColor(0x3b82f6)
       .setAuthor({
-        name: interaction.user.username,
+        name: "\u200b",
         iconURL: interaction.user.displayAvatarURL(),
       })
       .setDescription(text)

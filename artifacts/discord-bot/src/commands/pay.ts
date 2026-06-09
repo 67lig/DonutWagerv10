@@ -17,10 +17,7 @@ const command: SlashCommand = {
     .setName("pay")
     .setDescription("Send coins to another player")
     .addUserOption((o) =>
-      o
-        .setName("user")
-        .setDescription("The player to pay")
-        .setRequired(true),
+      o.setName("user").setDescription("The player to pay").setRequired(true),
     )
     .addStringOption((o) =>
       o
@@ -52,7 +49,7 @@ const command: SlashCommand = {
     }
     if (amount > PAY_MAX) {
       await interaction.reply({
-        content: `Maximum payment per transaction is ${formatCoins(PAY_MAX)}.`,
+        content: `Maximum payment is ${formatCoins(PAY_MAX)} per transaction.`,
         ephemeral: true,
       });
       return;
@@ -60,56 +57,106 @@ const command: SlashCommand = {
 
     await interaction.deferReply({ ephemeral: true });
 
-    // Pre-check daily limit so we can give a clear error with remaining amount.
+    const sender = await getOrCreateUser(interaction.user.id);
+
+    // Block payments while the sender has an active wager requirement.
+    // This prevents bonus/coupon coins from being laundered to friends
+    // who can then withdraw them without wagering.
+    const wagerReq = BigInt(sender.wager_requirement);
+    if (wagerReq > 0n) {
+      await interaction.editReply({
+        embeds: [
+          new EmbedBuilder()
+            .setColor(0x6b7280)
+            .setTitle("Payment Blocked")
+            .setDescription(
+              `You have a wager requirement of **${formatCoins(wagerReq)}** remaining.\n` +
+              `You must wager that amount before you can pay other players.`,
+            )
+            .setTimestamp(),
+        ],
+      });
+      return;
+    }
+
+    // Pre-check daily limit to give a precise remaining-amount message.
     const dailySent = await getDailyPaySent(interaction.user.id);
     const remaining = PAY_DAILY_LIMIT - dailySent;
     if (remaining <= 0n) {
       await interaction.editReply({
-        content: `You have reached your daily pay limit of ${formatCoins(PAY_DAILY_LIMIT)}. Try again tomorrow.`,
+        embeds: [
+          new EmbedBuilder()
+            .setColor(0x6b7280)
+            .setTitle("Daily Limit Reached")
+            .setDescription(
+              `You have reached the daily pay limit of **${formatCoins(PAY_DAILY_LIMIT)}**.\nTry again tomorrow.`,
+            )
+            .setTimestamp(),
+        ],
       });
       return;
     }
     if (dailySent + amount > PAY_DAILY_LIMIT) {
       await interaction.editReply({
-        content: `You can only send ${formatCoins(remaining)} more today (daily limit: ${formatCoins(PAY_DAILY_LIMIT)}).`,
+        embeds: [
+          new EmbedBuilder()
+            .setColor(0x6b7280)
+            .setTitle("Daily Limit")
+            .setDescription(
+              `You can only send **${formatCoins(remaining)}** more today.\nDaily limit: ${formatCoins(PAY_DAILY_LIMIT)}.`,
+            )
+            .setTimestamp(),
+        ],
       });
       return;
     }
 
-    // Ensure sender exists in DB.
-    await getOrCreateUser(interaction.user.id);
-
     const result = await executePayment(interaction.user.id, target.id, amount);
 
     if (!result.ok) {
-      if (result.reason === "insufficient_funds") {
-        await interaction.editReply({ content: "You do not have enough coins to send that amount." });
-        return;
-      }
-      if (result.reason === "daily_limit") {
-        await interaction.editReply({
-          content: `Daily pay limit of ${formatCoins(PAY_DAILY_LIMIT)} reached. Try again tomorrow.`,
-        });
-        return;
-      }
-      await interaction.editReply({ content: "Payment failed. Please try again." });
+      const msg =
+        result.reason === "insufficient_funds"
+          ? "You do not have enough coins to send that amount."
+          : result.reason === "daily_limit"
+          ? `Daily pay limit of ${formatCoins(PAY_DAILY_LIMIT)} reached. Try again tomorrow.`
+          : result.reason === "wager_required"
+          ? `You must clear your wager requirement before paying others.`
+          : "Payment failed. Please try again.";
+      await interaction.editReply({
+        embeds: [
+          new EmbedBuilder()
+            .setColor(0x6b7280)
+            .setTitle("Payment Failed")
+            .setDescription(msg)
+            .setTimestamp(),
+        ],
+      });
       return;
     }
 
-    const embed = new EmbedBuilder()
-      .setColor(0x6b7280)
-      .setTitle("Payment Sent")
-      .addFields(
-        { name: "From", value: `<@${interaction.user.id}>`, inline: true },
-        { name: "To", value: `<@${target.id}>`, inline: true },
-        { name: "Amount", value: formatCoins(amount), inline: true },
-        { name: "Your Balance", value: formatCoins(result.senderBalance), inline: true },
-      )
-      .setTimestamp();
+    const newDailySent = dailySent + amount;
+    const newRemaining = PAY_DAILY_LIMIT - newDailySent;
 
-    await interaction.editReply({ embeds: [embed] });
+    await interaction.editReply({
+      embeds: [
+        new EmbedBuilder()
+          .setColor(0x6b7280)
+          .setTitle("Payment Sent")
+          .addFields(
+            { name: "Recipient", value: `<@${target.id}>`, inline: true },
+            { name: "Amount", value: formatCoins(amount), inline: true },
+            { name: "\u200b", value: "\u200b", inline: true },
+            { name: "Your Balance", value: formatCoins(result.senderBalance), inline: true },
+            {
+              name: "Daily Limit Remaining",
+              value: `${formatCoins(newRemaining)} of ${formatCoins(PAY_DAILY_LIMIT)}`,
+              inline: true,
+            },
+          )
+          .setTimestamp(),
+      ],
+    });
 
-    // Log to pay log channel.
     void logPayAction({
       senderId: interaction.user.id,
       senderTag: interaction.user.tag,

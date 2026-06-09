@@ -805,7 +805,7 @@ export async function getDailyPaySent(senderId: string): Promise<bigint> {
 
 export type PayResult =
   | { ok: true; senderBalance: bigint; receiverBalance: bigint }
-  | { ok: false; reason: "insufficient_funds" | "daily_limit" | "error" };
+  | { ok: false; reason: "insufficient_funds" | "daily_limit" | "wager_required" | "error" };
 
 const PAY_DAILY_LIMIT = 50_000_000n; // 50 million
 
@@ -842,6 +842,17 @@ export async function executePayment(
       `INSERT INTO bot_users (discord_id) VALUES ($1) ON CONFLICT DO NOTHING`,
       [receiverId],
     );
+
+    // Block if sender has an outstanding wager requirement (anti-launder).
+    const wagerRes = await client.query<{ wager_requirement: string }>(
+      `SELECT wager_requirement FROM bot_users WHERE discord_id = $1`,
+      [senderId],
+    );
+    const wagerReq = BigInt(wagerRes.rows[0]?.wager_requirement ?? "0");
+    if (wagerReq > 0n) {
+      await client.query("ROLLBACK");
+      return { ok: false, reason: "wager_required" };
+    }
 
     // Check daily limit.
     const dailyRes = await client.query<{ total: string }>(

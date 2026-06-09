@@ -92,7 +92,35 @@ function buildQueueEmbed(rows: PendingRow[]): EmbedBuilder {
 }
 
 function buildQueueComponents(showOwnerWidget = false): ActionRowBuilder<ButtonBuilder>[] {
-  const rows: ActionRowBuilder<ButtonBuilder>[] = [
+  const row2Buttons = [
+    new ButtonBuilder()
+      .setCustomId(`${SP_BTN_PREFIX}:balhistory`)
+      .setLabel("Balance History")
+      .setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder()
+      .setCustomId(`${SP_BTN_PREFIX}:gamehistory`)
+      .setLabel("Game History")
+      .setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder()
+      .setCustomId(`${SP_BTN_PREFIX}:markpaid`)
+      .setLabel("Mark Paid")
+      .setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder()
+      .setCustomId(`${SP_BTN_PREFIX}:suggestions`)
+      .setLabel("Gamblepanel")
+      .setStyle(ButtonStyle.Secondary),
+  ];
+
+  if (showOwnerWidget) {
+    row2Buttons.push(
+      new ButtonBuilder()
+        .setCustomId(`${SP_BTN_PREFIX}:set2ndowner`)
+        .setLabel("Set 2nd Owner")
+        .setStyle(ButtonStyle.Secondary),
+    );
+  }
+
+  return [
     new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
         .setCustomId(`${SP_BTN_PREFIX}:approve`)
@@ -111,49 +139,14 @@ function buildQueueComponents(showOwnerWidget = false): ActionRowBuilder<ButtonB
         .setLabel("Refresh")
         .setStyle(ButtonStyle.Secondary),
     ),
-    new ActionRowBuilder<ButtonBuilder>().addComponents(
-      new ButtonBuilder()
-        .setCustomId(`${SP_BTN_PREFIX}:balhistory`)
-        .setLabel("Balance History")
-        .setStyle(ButtonStyle.Secondary),
-      new ButtonBuilder()
-        .setCustomId(`${SP_BTN_PREFIX}:gamehistory`)
-        .setLabel("Game History")
-        .setStyle(ButtonStyle.Secondary),
-      new ButtonBuilder()
-        .setCustomId(`${SP_BTN_PREFIX}:markpaid`)
-        .setLabel("Mark Paid")
-        .setStyle(ButtonStyle.Secondary),
-    ),
+    new ActionRowBuilder<ButtonBuilder>().addComponents(...row2Buttons),
   ];
-
-  rows.push(
-    new ActionRowBuilder<ButtonBuilder>().addComponents(
-      new ButtonBuilder()
-        .setCustomId(`${SP_BTN_PREFIX}:suggestions`)
-        .setLabel("💬 Suggestions")
-        .setStyle(ButtonStyle.Secondary),
-    ),
-  );
-
-  if (showOwnerWidget) {
-    rows.push(
-      new ActionRowBuilder<ButtonBuilder>().addComponents(
-        new ButtonBuilder()
-          .setCustomId(`${SP_BTN_PREFIX}:set2ndowner`)
-          .setLabel("Set 2nd Owner")
-          .setStyle(ButtonStyle.Secondary),
-      ),
-    );
-  }
-
-  return rows;
 }
 
 function buildSuggestionsEmbed(threshold: number): EmbedBuilder {
   return new EmbedBuilder()
     .setColor(0x8b5cf6)
-    .setTitle("💬 Suggestions Settings")
+    .setTitle("Suggestions Settings")
     .setDescription(
       `**Suggestions channel:** <#${CHANNELS.SUGGESTIONS}>\n` +
       `**Top Suggestions channel:** <#${CHANNELS.TOP_SUGGESTIONS}>\n\n` +

@@ -89,6 +89,7 @@ export async function updateStickyMessage(
 }
 
 const _processedMsgIds = new Set<string>();
+const _recentlyDmedUsers = new Set<string>();
 
 export async function handleSuggestionsMessage(
   message: Message | PartialMessage,
@@ -98,21 +99,29 @@ export async function handleSuggestionsMessage(
   // Bot-posted messages are managed externally (e.g. /suggest handles sticky).
   if (message.author?.bot) return;
 
-  // Deduplicate: discord.js can fire MessageCreate twice for the same message
-  // when partials are enabled and the channel is not fully cached.
+  // Message-level dedup: catches same-message double-fires from discord.js partials.
   if (_processedMsgIds.has(message.id)) return;
   _processedMsgIds.add(message.id);
-  setTimeout(() => _processedMsgIds.delete(message.id), 5000);
+  setTimeout(() => _processedMsgIds.delete(message.id), 10_000);
 
-  // Delete any direct user message — submissions must go through /suggest.
+  // Delete the message and notify the user via DM.
   try {
     const fullMsg = message.partial ? await message.fetch() : message;
+    if (fullMsg.author?.bot) return;
+
     await (fullMsg as Message).delete().catch(() => null);
-    await (fullMsg as Message).author
-      ?.send(
-        "Use **/suggest** to submit a suggestion. Direct messages in that channel are not allowed.",
-      )
-      .catch(() => null);
+
+    // User-level dedup: only send one DM per user per 30s regardless of cause.
+    const uid = (fullMsg as Message).author?.id;
+    if (uid && !_recentlyDmedUsers.has(uid)) {
+      _recentlyDmedUsers.add(uid);
+      setTimeout(() => _recentlyDmedUsers.delete(uid), 30_000);
+      await (fullMsg as Message).author
+        ?.send(
+          "Use **/suggest** to submit a suggestion. Direct messages in that channel are not allowed.",
+        )
+        .catch(() => null);
+    }
   } catch (err) {
     console.error("[suggestions] Failed to delete direct message:", err);
   }

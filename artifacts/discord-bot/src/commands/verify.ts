@@ -11,7 +11,7 @@ import { findUserByMinecraftUsername, getOrCreateUser } from "../lib/db.js";
 import { createTicketChannel } from "../lib/tickets.js";
 import { JAVA_IGN_REGEX, lookupJavaProfile } from "../lib/mojang.js";
 
-const BEDROCK_IGN_REGEX = /^[A-Za-z0-9_ ]{3,16}$/;
+const BEDROCK_IGN_REGEX = /^.{1,64}$/;
 
 const command: SlashCommand = {
   data: new SlashCommandBuilder()
@@ -30,10 +30,10 @@ const command: SlashCommand = {
     .addStringOption((o) =>
       o
         .setName("minecraft")
-        .setDescription("Your Minecraft username (e.g. Notch or Player123)")
+        .setDescription("Your Minecraft username (e.g. Notch or .Player123)")
         .setRequired(true)
-        .setMinLength(3)
-        .setMaxLength(16),
+        .setMinLength(1)
+        .setMaxLength(64),
     ),
 
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {

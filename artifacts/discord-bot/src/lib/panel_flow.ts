@@ -44,27 +44,27 @@ export function buildPanelMessage(): {
   components: ActionRowBuilder<ButtonBuilder>[];
 } {
   const embed = new EmbedBuilder()
-    .setColor(0xf59e0b)
-    .setTitle("DonutSMP Casino")
+    .setColor(0xfbbf24)
+    .setTitle("🎰  DonutSMP Casino")
     .setDescription(
       [
-        "**How to Play:**",
+        "### 🚀 Getting Started",
+        "⚙️ **Settings** — Link your Minecraft username",
+        "📥 **Deposit** — Open a deposit ticket",
+        "📤 **Withdraw** — Cash out your winnings",
+        "💰 **Balance** — Check your wallet",
         "",
-        "Click Settings to set your gambling username",
-        "Click Deposit to open a deposit ticket",
-        "Use slash commands to play games",
-        "Click Withdraw to cash out",
+        "### 🎮 Games",
+        "🪙 `/coinflip <bet> <heads/tails>`",
+        "🎲 `/dice <bet> <target>` — Roll over the target to win",
+        "💣 `/mines <bet> [mines]` — Dodge mines & cash out anytime",
+        "🃏 `/blackjack <bet>` — Beat the dealer",
+        "🎡 `/roulette <bet> <red/black/number>` — Spin the wheel",
+        "🗼 `/towers <bet>` — Climb the tower for bigger rewards",
         "",
-        "**Games:**",
-        "`/coinflip <bet> <heads/tails>`",
-        "`/dice <bet> <target>` - Over target to win",
-        "`/mines <bet> [mines]` - Avoid mines, cash out anytime",
-        "`/blackjack <bet>` - Beat the dealer",
-        "`/roulette <bet> <red/black/number>` - Spin the wheel",
-        "",
-        "**Limits:** 10k - 150M per bet",
-        "Use `/balance` to check your wallet.",
-        "Click a button below to get started.",
+        "### 📋 Info",
+        "**Bet Limits:** `10,000` — `150,000,000` coins",
+        "Use `/balance` to check your current wallet.",
       ].join("\n"),
     );
 

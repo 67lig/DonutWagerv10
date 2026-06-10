@@ -57,7 +57,8 @@ export const WEBHOOK_URLS = {
 
 // ── Deposit log channels ──────────────────────────────────────────────────────
 // Every admin deposit / payout gets echoed to all channels listed here.
+// NOTE: Do NOT include CHANNELS.ADMIN_LOG here — logAdminAction already posts
+// there. Including it would send a duplicate message for every deposit action.
 export const DEPOSIT_LOG_CHANNEL_IDS: readonly string[] = [
-  CHANNELS.ADMIN_LOG,
   CHANNELS.WITHDRAW_LOG,
 ] as const;

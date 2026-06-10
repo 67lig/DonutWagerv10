@@ -7,7 +7,7 @@ import { getOrCreateUser, setBalance, recordBalanceEvent } from "../lib/db.js";
 import { formatCoins, parseAmount } from "../lib/format.js";
 import { isModOrOwner } from "../lib/permissions.js";
 import { logAdminAction } from "../lib/gamblelog.js";
-import { DEPOSIT_LOG_CHANNEL_IDS } from "../lib/config.js";
+import { CHANNELS } from "../lib/config.js";
 import type { SlashCommand } from "../lib/types.js";
 
 const command: SlashCommand = {
@@ -82,7 +82,7 @@ const command: SlashCommand = {
     });
 
     const paylogEmbed = new EmbedBuilder()
-      .setColor(0x3b82f6)
+      .setColor(0x22c55e)
       .setTitle("Balance Set")
       .addFields(
         { name: "User", value: `<@${target.id}>`, inline: true },
@@ -93,14 +93,12 @@ const command: SlashCommand = {
       )
       .setFooter({ text: `Set by ${interaction.user.tag}` })
       .setTimestamp();
-    for (const chId of DEPOSIT_LOG_CHANNEL_IDS) {
-      try {
-        const ch = await interaction.client.channels.fetch(chId);
-        if (ch?.isTextBased() && "send" in ch) {
-          await (ch as { send: (o: unknown) => Promise<unknown> }).send({ embeds: [paylogEmbed] });
-        }
-      } catch { /* ignore */ }
-    }
+    try {
+      const ch = await interaction.client.channels.fetch(CHANNELS.ADMIN_LOG);
+      if (ch?.isTextBased() && "send" in ch) {
+        await (ch as { send: (o: unknown) => Promise<unknown> }).send({ embeds: [paylogEmbed] });
+      }
+    } catch { /* ignore */ }
 
     await interaction.reply({
       embeds: [

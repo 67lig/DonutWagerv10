@@ -47,7 +47,7 @@ import {
 } from "../lib/invite_flow.js";
 import { CATEGORY_CONFIG_KEYS } from "../lib/tickets.js";
 import { getHouseRates, saveHouseRates, DEFAULT_RATES, type HouseRates } from "../lib/houserates.js";
-import { CHANNELS, DEPOSIT_LOG_CHANNEL_IDS } from "../lib/config.js";
+import { CHANNELS } from "../lib/config.js";
 import {
   getThreshold,
   getStickyText,
@@ -1611,7 +1611,7 @@ export async function handleAdminPanelModal(
     });
 
     const setbalEmbed = new EmbedBuilder()
-      .setColor(0x3b82f6)
+      .setColor(0x22c55e)
       .setTitle("Balance Set (Panel)")
       .addFields(
         { name: "User", value: `<@${targetId}>`, inline: true },
@@ -1620,14 +1620,12 @@ export async function handleAdminPanelModal(
         { name: "By", value: `<@${interaction.user.id}>`, inline: true },
       )
       .setTimestamp();
-    for (const chId of DEPOSIT_LOG_CHANNEL_IDS) {
-      try {
-        const ch = await interaction.client.channels.fetch(chId);
-        if (ch?.isTextBased() && "send" in ch) {
-          await (ch as { send: (o: unknown) => Promise<unknown> }).send({ embeds: [setbalEmbed] });
-        }
-      } catch { /* ignore */ }
-    }
+    try {
+      const ch = await interaction.client.channels.fetch(CHANNELS.ADMIN_LOG);
+      if (ch?.isTextBased() && "send" in ch) {
+        await (ch as { send: (o: unknown) => Promise<unknown> }).send({ embeds: [setbalEmbed] });
+      }
+    } catch { /* ignore */ }
 
     const [target, rig, dbUser, inv] = await Promise.all([
       interaction.client.users.fetch(targetId),

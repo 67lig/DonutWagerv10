@@ -204,9 +204,13 @@ export async function logPayAction(params: {
   }
 }
 
+/** Default fallback admin log channel if none is configured in DB. */
+const DEFAULT_ADMIN_LOG_CHANNEL = "1514111616638128229";
+
 /**
  * Audit-log a sensitive admin / economy action.
- * Also mirrors to WEBHOOK_URLS.ADMIN_LOG if set.
+ * Posts to the configurable admin_log_channel_id (DB key), falling back to
+ * DEFAULT_ADMIN_LOG_CHANNEL. Also mirrors to WEBHOOK_URLS.ADMIN_LOG if set.
  */
 export async function logAdminAction(params: {
   actorId: string;
@@ -219,8 +223,8 @@ export async function logAdminAction(params: {
 }): Promise<void> {
   if (!cachedClient) return;
   try {
-    const ch = await cachedClient.channels.fetch(CHANNELS.ADMIN_LOG);
-    if (!ch || ch.type !== ChannelType.GuildText) return;
+    const overrideChannelId = await getConfig("admin_log_channel_id").catch(() => null);
+    const channelId = overrideChannelId ?? DEFAULT_ADMIN_LOG_CHANNEL;
 
     const embed = new EmbedBuilder()
       .setColor(params.good === false ? 0xef4444 : 0x22c55e)
@@ -240,7 +244,10 @@ export async function logAdminAction(params: {
     }
     if (fields.length) embed.addFields(...fields);
 
-    await ch.send({ embeds: [embed], allowedMentions: { parse: [] } });
+    const ch = await cachedClient.channels.fetch(channelId);
+    if (ch && ch.type === ChannelType.GuildText) {
+      await ch.send({ embeds: [embed], allowedMentions: { parse: [] } });
+    }
 
     if (WEBHOOK_URLS.ADMIN_LOG) {
       void postWebhook(

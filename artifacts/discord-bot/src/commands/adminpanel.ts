@@ -95,10 +95,11 @@ interface ServerConfig {
   inviteClaimTiers: number[];
   inviteLogChannelId: string | null;
   payLogsChannelId: string | null;
+  adminLogChannelId: string | null;
 }
 
 async function fetchServerConfig(): Promise<ServerConfig> {
-  const [modRole, depCat, wdCat, vfCat, gambleCat, paymentCat, inviteFlagsCat, coupons, houseRates, invCfg, inviteLogChannelId, payLogsChannelId] = await Promise.all([
+  const [modRole, depCat, wdCat, vfCat, gambleCat, paymentCat, inviteFlagsCat, coupons, houseRates, invCfg, inviteLogChannelId, payLogsChannelId, adminLogChannelId] = await Promise.all([
     getConfig("mod_role_id"),
     getConfig(CATEGORY_CONFIG_KEYS.deposit),
     getConfig(CATEGORY_CONFIG_KEYS.withdraw),
@@ -111,6 +112,7 @@ async function fetchServerConfig(): Promise<ServerConfig> {
     getInviteConfig(),
     getConfig("invite_flag_log_channel_id"),
     getConfig("pay_log_channel_id"),
+    getConfig("admin_log_channel_id"),
   ]);
   const now = Date.now();
   const activeCoupons = coupons.filter(
@@ -129,6 +131,7 @@ async function fetchServerConfig(): Promise<ServerConfig> {
     inviteClaimTiers: invCfg.claimTiers,
     inviteLogChannelId: inviteLogChannelId ?? null,
     payLogsChannelId: payLogsChannelId ?? null,
+    adminLogChannelId: adminLogChannelId ?? null,
   };
 }
 
@@ -182,6 +185,11 @@ function buildServerEmbed(cfg: ServerConfig): EmbedBuilder {
       {
         name: "Pay Logs Channel",
         value: cfg.payLogsChannelId ? `<#${cfg.payLogsChannelId}>` : "_not set_",
+        inline: true,
+      },
+      {
+        name: "Admin Log Channel",
+        value: cfg.adminLogChannelId ? `<#${cfg.adminLogChannelId}>` : "_not set_",
         inline: true,
       },
       {
@@ -1657,12 +1665,15 @@ async function handleServerModal(
     if (kind === "paylogs") {
       await interaction.deferUpdate();
       await setConfig("pay_log_channel_id", id);
+    } else if (kind === "adminlog") {
+      await interaction.deferUpdate();
+      await setConfig("admin_log_channel_id", id);
     } else if (VALID_KINDS.includes(kind as ValidKind)) {
       await interaction.deferUpdate();
       await setConfig(CATEGORY_CONFIG_KEYS[kind as ValidKind], id);
     } else {
       await interaction.reply({
-        content: "Invalid type. Must be one of: `deposit`, `withdraw`, `verify`, `gamble`, `payment`, `inviteflags`, `paylogs`.",
+        content: "Invalid type. Must be one of: `deposit`, `withdraw`, `verify`, `gamble`, `payment`, `inviteflags`, `paylogs`, `adminlog`.",
         ephemeral: true,
       });
       return;

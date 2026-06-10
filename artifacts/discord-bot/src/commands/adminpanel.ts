@@ -1610,23 +1610,6 @@ export async function handleAdminPanelModal(
       detail: `Was ${formatCoins(oldBal)} → now ${formatCoins(newBal)}`,
     });
 
-    const setbalEmbed = new EmbedBuilder()
-      .setColor(0x22c55e)
-      .setTitle("Balance Set (Panel)")
-      .addFields(
-        { name: "User", value: `<@${targetId}>`, inline: true },
-        { name: "New Balance", value: formatCoins(newBal), inline: true },
-        { name: "Old Balance", value: formatCoins(oldBal), inline: true },
-        { name: "By", value: `<@${interaction.user.id}>`, inline: true },
-      )
-      .setTimestamp();
-    try {
-      const ch = await interaction.client.channels.fetch(CHANNELS.ADMIN_LOG);
-      if (ch?.isTextBased() && "send" in ch) {
-        await (ch as { send: (o: unknown) => Promise<unknown> }).send({ embeds: [setbalEmbed] });
-      }
-    } catch { /* ignore */ }
-
     const [target, rig, dbUser, inv] = await Promise.all([
       interaction.client.users.fetch(targetId),
       getRigRow(targetId),

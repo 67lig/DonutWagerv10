@@ -7,7 +7,6 @@ import { getOrCreateUser, setBalance, recordBalanceEvent } from "../lib/db.js";
 import { formatCoins, parseAmount } from "../lib/format.js";
 import { isModOrOwner } from "../lib/permissions.js";
 import { logAdminAction } from "../lib/gamblelog.js";
-import { CHANNELS } from "../lib/config.js";
 import type { SlashCommand } from "../lib/types.js";
 
 const command: SlashCommand = {
@@ -80,25 +79,6 @@ const command: SlashCommand = {
       amount,
       detail: logDetail,
     });
-
-    const paylogEmbed = new EmbedBuilder()
-      .setColor(0x22c55e)
-      .setTitle("Balance Set")
-      .addFields(
-        { name: "User", value: `<@${target.id}>`, inline: true },
-        { name: "New Balance", value: formatCoins(amount), inline: true },
-        { name: "Old Balance", value: formatCoins(oldBal), inline: true },
-        { name: "By", value: `<@${interaction.user.id}>`, inline: true },
-        ...(note ? [{ name: "Note", value: note, inline: false }] : []),
-      )
-      .setFooter({ text: `Set by ${interaction.user.tag}` })
-      .setTimestamp();
-    try {
-      const ch = await interaction.client.channels.fetch(CHANNELS.ADMIN_LOG);
-      if (ch?.isTextBased() && "send" in ch) {
-        await (ch as { send: (o: unknown) => Promise<unknown> }).send({ embeds: [paylogEmbed] });
-      }
-    } catch { /* ignore */ }
 
     await interaction.reply({
       embeds: [

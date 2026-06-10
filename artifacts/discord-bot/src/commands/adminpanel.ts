@@ -28,6 +28,7 @@ import {
   getConfig,
   setConfig,
   setVerified,
+  unlinkUser,
   findUserByMinecraftUsername,
   getGameHistory,
   pool,
@@ -533,16 +534,16 @@ export function buildUserComponents(targetId: string): ActionRowBuilder<ButtonBu
       .setLabel("Change Verify")
       .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
+      .setCustomId(`${AP_BTN_PREFIX}:resetverify:${targetId}`)
+      .setLabel("Reset Verify")
+      .setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder()
       .setCustomId(`${AP_BTN_PREFIX}:resetstats:${targetId}`)
       .setLabel("Reset Stats")
       .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
       .setCustomId(`${AP_BTN_PREFIX}:gamble:${targetId}`)
       .setLabel("Gamble")
-      .setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder()
-      .setCustomId(`${AP_BTN_PREFIX}:refresh:${targetId}`)
-      .setLabel("Refresh")
       .setStyle(ButtonStyle.Secondary),
   );
 
@@ -671,6 +672,26 @@ export async function handleAdminPanelButton(
       ),
     );
     await interaction.showModal(modal);
+    return;
+  }
+
+  if (action === "resetverify") {
+    await interaction.deferUpdate();
+    await unlinkUser(targetId);
+    await logAdminAction({
+      actorId: interaction.user.id,
+      actorTag: interaction.user.tag,
+      action: "Verify Reset",
+      targetId,
+      detail: "Verification cleared — user must re-verify.",
+    });
+    const [target, rig, dbUser, inv] = await Promise.all([
+      interaction.client.users.fetch(targetId),
+      getRigRow(targetId),
+      getOrCreateUser(targetId),
+      fetchUserInviteStats(targetId),
+    ]);
+    await interaction.editReply({ embeds: [buildUserEmbed(target, rig, dbUser, inv)], components: buildUserComponents(targetId) });
     return;
   }
 

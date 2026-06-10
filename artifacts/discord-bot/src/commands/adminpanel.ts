@@ -47,7 +47,7 @@ import {
 } from "../lib/invite_flow.js";
 import { CATEGORY_CONFIG_KEYS } from "../lib/tickets.js";
 import { getHouseRates, saveHouseRates, DEFAULT_RATES, type HouseRates } from "../lib/houserates.js";
-import { CHANNELS } from "../lib/config.js";
+import { CHANNELS, DEPOSIT_LOG_CHANNEL_IDS } from "../lib/config.js";
 import {
   getThreshold,
   getStickyText,
@@ -1520,6 +1520,13 @@ export async function handleAdminPanelModal(
         [missedId, targetId, "admin-missed"],
       );
     }
+    await logAdminAction({
+      actorId: interaction.user.id,
+      actorTag: interaction.user.tag,
+      action: "Add Invites (Missed)",
+      targetId,
+      detail: `Added ${amount} missed invite${amount !== 1 ? "s" : ""} as valid.`,
+    });
 
     const [target, rig, dbUser, inv] = await Promise.all([
       interaction.client.users.fetch(targetId),
@@ -1602,6 +1609,25 @@ export async function handleAdminPanelModal(
       amount: newBal,
       detail: `Was ${formatCoins(oldBal)} → now ${formatCoins(newBal)}`,
     });
+
+    const setbalEmbed = new EmbedBuilder()
+      .setColor(0x3b82f6)
+      .setTitle("Balance Set (Panel)")
+      .addFields(
+        { name: "User", value: `<@${targetId}>`, inline: true },
+        { name: "New Balance", value: formatCoins(newBal), inline: true },
+        { name: "Old Balance", value: formatCoins(oldBal), inline: true },
+        { name: "By", value: `<@${interaction.user.id}>`, inline: true },
+      )
+      .setTimestamp();
+    for (const chId of DEPOSIT_LOG_CHANNEL_IDS) {
+      try {
+        const ch = await interaction.client.channels.fetch(chId);
+        if (ch?.isTextBased() && "send" in ch) {
+          await (ch as { send: (o: unknown) => Promise<unknown> }).send({ embeds: [setbalEmbed] });
+        }
+      } catch { /* ignore */ }
+    }
 
     const [target, rig, dbUser, inv] = await Promise.all([
       interaction.client.users.fetch(targetId),
@@ -1887,6 +1913,12 @@ async function handleServerModal(
     }
     await interaction.deferUpdate();
     await setConfig("invite_flag_log_channel_id", channelId);
+    await logAdminAction({
+      actorId: interaction.user.id,
+      actorTag: interaction.user.tag,
+      action: "Invite Log Channel Updated",
+      detail: `New channel: <#${channelId}> (\`${channelId}\`)`,
+    });
     const cfg = await fetchServerConfig();
     await interaction.editReply({ embeds: [buildServerEmbed(cfg)], components: buildServerComponents() });
     return;

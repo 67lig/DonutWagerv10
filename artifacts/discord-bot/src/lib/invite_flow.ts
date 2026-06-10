@@ -14,7 +14,7 @@ import { formatCoins, formatCoinsShort } from "./format.js";
 import { createTicketChannel } from "./tickets.js";
 import { isMod } from "./permissions.js";
 import { VOUCH_CHANNEL_ID } from "./constants.js";
-import { logInviteAction } from "./gamblelog.js";
+import { logAdminAction, logInviteAction } from "./gamblelog.js";
 
 export const MEMBER_ROLE_ID = "1498005198990344322";
 
@@ -611,6 +611,15 @@ export async function handleInviteButton(
     await deleteConfig(`invite_pending_${targetId}`);
 
     const targetUser = await interaction.client.users.fetch(targetId).catch(() => null);
+    void logAdminAction({
+      actorId: interaction.user.id,
+      actorTag: interaction.user.tag,
+      action: "Invite Claim Approved",
+      targetId,
+      amount: coinsAwarded,
+      detail: `Claim #${pending.claimNumber} · ${pending.invitesUsed} invite${pending.invitesUsed !== 1 ? "s" : ""} · ${targetUser?.tag ?? targetId}`,
+      good: true,
+    });
     const approvedEmbed = new EmbedBuilder()
       .setColor(0x22c55e)
       .setTitle("Invite Claim Approved")
@@ -700,6 +709,14 @@ export async function handleInviteButton(
 
     const targetUser = await interaction.client.users.fetch(targetId).catch(() => null);
     if (deniedPending) {
+      void logAdminAction({
+        actorId: interaction.user.id,
+        actorTag: interaction.user.tag,
+        action: "Invite Claim Denied",
+        targetId,
+        detail: `Claim #${deniedPending.claimNumber} · ${deniedPending.invitesUsed} invite${deniedPending.invitesUsed !== 1 ? "s" : ""} returned · ${targetUser?.tag ?? targetId}`,
+        good: false,
+      });
       void logInviteAction({
         action: "denied",
         inviterId: targetId,

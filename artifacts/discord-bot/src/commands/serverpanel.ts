@@ -505,6 +505,12 @@ export async function handleServerPanelModal(
     await setThreshold(n);
     await updateStickyMessage(interaction.client);
     const threshold = await getThreshold();
+    void logAdminAction({
+      actorId: interaction.user.id,
+      actorTag: interaction.user.tag,
+      action: "Suggestion Threshold Updated",
+      detail: `Reaction threshold set to **${threshold}**`,
+    });
     await interaction.reply({
       ephemeral: true,
       embeds: [
@@ -523,6 +529,12 @@ export async function handleServerPanelModal(
     await setStickyText(text);
     await updateStickyMessage(interaction.client);
     const threshold = await getThreshold();
+    void logAdminAction({
+      actorId: interaction.user.id,
+      actorTag: interaction.user.tag,
+      action: "Sticky Message Updated",
+      detail: `Preview: ${text.replace("{threshold}", String(threshold)).replace("{emoji}", "[emoji]").slice(0, 200)}`,
+    });
     await interaction.reply({
       ephemeral: true,
       embeds: [
@@ -548,6 +560,13 @@ export async function handleServerPanelModal(
     }
     await setConfig("second_owner_id", userId);
     setSecondOwnerIdCache(userId);
+    await logAdminAction({
+      actorId: interaction.user.id,
+      actorTag: interaction.user.tag,
+      action: "2nd Owner Set",
+      targetId: userId,
+      detail: `<@${userId}> now has full owner commands.`,
+    });
     await interaction.reply({
       ephemeral: true,
       embeds: [
@@ -764,6 +783,14 @@ export async function handleServerPanelModal(
       .setTimestamp();
 
     await interaction.followUp({ embeds: [embed], ephemeral: false });
+    void logAdminAction({
+      actorId: interaction.user.id,
+      actorTag: interaction.user.tag,
+      action: "Deposit Denied (Queue)",
+      targetId: userId,
+      detail: `Reason: ${reason}`,
+      good: false,
+    });
 
     const rows = await fetchPending();
     await interaction.editReply({ embeds: [buildQueueEmbed(rows)], components: buildQueueComponents() });

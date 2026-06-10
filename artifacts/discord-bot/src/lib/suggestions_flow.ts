@@ -8,7 +8,7 @@ import {
   type PartialUser,
   type User,
 } from "discord.js";
-import { getConfig, setConfig, pool, claimOnce } from "./db.js";
+import { getConfig, setConfig, pool } from "./db.js";
 import { CHANNELS, SUGGESTION_EMOJI_ID } from "./config.js";
 
 export const STICKY_MSG_KEY = "suggestions_sticky_msg_id";
@@ -109,16 +109,6 @@ export async function handleSuggestionsMessage(
     if (fullMsg.author?.bot) return;
 
     await (fullMsg as Message).delete().catch(() => null);
-
-    // DB-level dedup: one DM per user per 30s, safe across multiple bot instances.
-    const uid = (fullMsg as Message).author?.id;
-    if (uid && await claimOnce(`sugg_dm_${uid}`, 30_000)) {
-      await (fullMsg as Message).author
-        ?.send(
-          "Use **/suggest** to submit a suggestion. Direct messages in that channel are not allowed.",
-        )
-        .catch(() => null);
-    }
   } catch (err) {
     console.error("[suggestions] Failed to delete direct message:", err);
   }

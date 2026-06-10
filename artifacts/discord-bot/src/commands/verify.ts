@@ -11,32 +11,48 @@ import { findUserByMinecraftUsername, getOrCreateUser } from "../lib/db.js";
 import { createTicketChannel } from "../lib/tickets.js";
 import { JAVA_IGN_REGEX, lookupJavaProfile } from "../lib/mojang.js";
 
+const BEDROCK_IGN_REGEX = /^[A-Za-z0-9_ ]{3,16}$/;
+
 const command: SlashCommand = {
   data: new SlashCommandBuilder()
     .setName("verify")
-    .setDescription("Link your Java Edition Minecraft account to start playing")
+    .setDescription("Link your Minecraft account to start playing")
+    .addStringOption((o) =>
+      o
+        .setName("edition")
+        .setDescription("Java Edition or Bedrock Edition?")
+        .setRequired(true)
+        .addChoices(
+          { name: "Java Edition", value: "java" },
+          { name: "Bedrock Edition", value: "bedrock" },
+        ),
+    )
     .addStringOption((o) =>
       o
         .setName("minecraft")
-        .setDescription("Your Java Edition username (e.g. Notch)")
+        .setDescription("Your Minecraft username (e.g. Notch or Player123)")
         .setRequired(true)
         .setMinLength(3)
         .setMaxLength(16),
     ),
 
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
+    const edition = interaction.options.getString("edition", true) as "java" | "bedrock";
     const ign = interaction.options.getString("minecraft", true).trim();
-
-    if (!JAVA_IGN_REGEX.test(ign)) {
-      await interaction.reply({
-        content: "Invalid username. Java Edition usernames are 3-16 characters: letters, numbers, and underscores only.",
-        ephemeral: true,
-      });
-      return;
-    }
 
     if (!interaction.guild) {
       await interaction.reply({ content: "Use this command in a server.", ephemeral: true });
+      return;
+    }
+
+    // Validate IGN format
+    const regex = edition === "java" ? JAVA_IGN_REGEX : BEDROCK_IGN_REGEX;
+    if (!regex.test(ign)) {
+      const hint =
+        edition === "java"
+          ? "Java Edition usernames are 3–16 characters: letters, numbers, and underscores only."
+          : "Bedrock Edition usernames are 3–16 characters: letters, numbers, underscores, and spaces only.";
+      await interaction.reply({ content: `Invalid username. ${hint}`, ephemeral: true });
       return;
     }
 
@@ -53,58 +69,73 @@ const command: SlashCommand = {
     const conflict = await findUserByMinecraftUsername(ign);
     if (conflict && conflict.discord_id !== interaction.user.id) {
       await interaction.editReply({
-        content: "That Minecraft account is already linked to another Discord user. Contact a moderator if this is a mistake.",
+        content:
+          "That Minecraft account is already linked to another Discord user. Contact a moderator if this is a mistake.",
       });
       return;
     }
 
-    // Validate against Mojang — Bedrock accounts have no Java UUID and will return null
-    const profile = await lookupJavaProfile(ign);
-    if (!profile) {
-      await interaction.editReply({
-        content: `No Java Edition account found for **${ign}**. Make sure the spelling is exact. Bedrock accounts cannot be linked.`,
-      });
-      return;
+    // ── Java: validate against Mojang ────────────────────────────────────────
+    let resolvedName = ign;
+    let uuid: string | null = null;
+
+    if (edition === "java") {
+      const profile = await lookupJavaProfile(ign);
+      if (!profile) {
+        await interaction.editReply({
+          content: `No Java Edition account found for **${ign}**. Make sure the spelling is exact.`,
+        });
+        return;
+      }
+      resolvedName = profile.name;
+      uuid = profile.id;
     }
 
+    // ── Create ticket ─────────────────────────────────────────────────────────
+    const editionLabel = edition === "java" ? "Java" : "Bedrock";
     const ticket = await createTicketChannel({
       guild: interaction.guild,
       ownerId: interaction.user.id,
       ownerUsername: interaction.user.username,
       kind: "verify",
-      topic: `Linking ticket - Java: ${profile.name}`,
+      topic: `Linking ticket - ${editionLabel}: ${resolvedName}`,
       allowAttachments: true,
     });
     if (!ticket) {
       await interaction.editReply({
-        content: "Couldn't create the linking ticket. Make sure the bot has **Manage Channels** permission.",
+        content:
+          "Couldn't create the linking ticket. Make sure the bot has **Manage Channels** permission.",
       });
       return;
     }
 
     const discordTs = Math.floor(interaction.user.createdTimestamp / 1000);
+
     const embed = new EmbedBuilder()
-      .setColor(0x22c55e)
+      .setColor(edition === "java" ? 0x22c55e : 0x3b82f6)
       .setTitle("Account Linking Request")
       .setDescription(
-        `<@${interaction.user.id}> wants to link Java account **${profile.name}**.\n\nA staff member will verify ownership in-game on DonutSMP and approve below.`,
+        `<@${interaction.user.id}> wants to link their **${editionLabel} Edition** account **${resolvedName}**.\n\nA staff member will verify ownership in-game on DonutSMP and approve below.`,
       )
       .addFields(
-        { name: "Minecraft", value: `\`${profile.name}\``, inline: true },
-        { name: "UUID", value: `\`${profile.id}\``, inline: true },
-        { name: "\u200b", value: "\u200b", inline: true },
+        { name: "Edition", value: `${editionLabel} Edition`, inline: true },
+        { name: "Minecraft IGN", value: `\`${resolvedName}\``, inline: true },
+        ...(uuid ? [{ name: "UUID", value: `\`${uuid}\``, inline: true }] : [{ name: "\u200b", value: "\u200b", inline: true }]),
         {
           name: "Discord Account Age",
           value: `Created <t:${discordTs}:D> (<t:${discordTs}:R>)`,
           inline: false,
         },
       )
-      .setThumbnail(`https://mc-heads.net/avatar/${profile.id}/128`)
       .setFooter({ text: "Mods: confirm in-game ownership, then click Approve." });
+
+    if (uuid) {
+      embed.setThumbnail(`https://mc-heads.net/avatar/${uuid}/128`);
+    }
 
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
-        .setCustomId(`verify:approve:${interaction.user.id}:${profile.name}`)
+        .setCustomId(`verify:approve:${interaction.user.id}:${resolvedName}`)
         .setLabel("Approve")
         .setStyle(ButtonStyle.Success),
       new ButtonBuilder()

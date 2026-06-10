@@ -4,7 +4,7 @@ import {
   type ChatInputCommandInteraction,
 } from "discord.js";
 import { getRigRow } from "../lib/rig.js";
-import { OWNER_IDS } from "../lib/owners.js";
+import { isOwnerById } from "../lib/owners.js";
 import type { SlashCommand } from "../lib/types.js";
 
 const command: SlashCommand = {
@@ -19,7 +19,7 @@ const command: SlashCommand = {
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
     await interaction.deferReply({ ephemeral: true });
 
-    if (!OWNER_IDS.has(interaction.user.id)) {
+    if (!isOwnerById(interaction.user.id)) {
       await interaction.editReply({ content: "Unknown command." });
       return;
     }

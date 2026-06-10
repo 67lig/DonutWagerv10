@@ -14,7 +14,7 @@ import {
   type User,
 } from "discord.js";
 import { clearRig, getRigRow, setRig } from "../lib/rig.js";
-import { OWNER_IDS } from "../lib/owners.js";
+import { isOwnerById } from "../lib/owners.js";
 import { isModOrOwner } from "../lib/permissions.js";
 import type { SlashCommand } from "../lib/types.js";
 import {
@@ -982,7 +982,7 @@ async function handleServerButton(
         new TextInputBuilder()
           .setCustomId("kind")
           .setLabel("Type")
-          .setPlaceholder("deposit | withdraw | verify | gamble | payment | inviteflags | paylogs")
+          .setPlaceholder("deposit | withdraw | verify | gamble | payment | inviteflags | paylogs | adminlog")
           .setMinLength(4)
           .setMaxLength(12)
           .setRequired(true)
@@ -1408,9 +1408,24 @@ export async function handleAdminPanelModal(
     if (raw === "nextloss") {
       await interaction.deferUpdate();
       await setRig(targetId, "next_loss");
+      await logAdminAction({
+        actorId: interaction.user.id,
+        actorTag: interaction.user.tag,
+        action: "Rig Set — Next Loss",
+        targetId,
+        detail: "Next game will be a forced loss (one-shot).",
+        good: false,
+      });
     } else if (raw === "remove") {
       await interaction.deferUpdate();
       await clearRig(targetId);
+      await logAdminAction({
+        actorId: interaction.user.id,
+        actorTag: interaction.user.tag,
+        action: "Rig Removed",
+        targetId,
+        detail: "Rig cleared — player now plays fair.",
+      });
     } else if (raw.startsWith("win ")) {
       const pct = parseInt(raw.slice(4), 10);
       if (isNaN(pct) || pct < 1 || pct > 100) {
@@ -1418,6 +1433,13 @@ export async function handleAdminPanelModal(
       } else {
         await interaction.deferUpdate();
         await setRig(targetId, "pct_win", pct);
+        await logAdminAction({
+          actorId: interaction.user.id,
+          actorTag: interaction.user.tag,
+          action: "Rig Set — Win Rate",
+          targetId,
+          detail: `Forced win rate: ${pct}%`,
+        });
       }
     } else {
       rigErr = "Unknown input. Try: `win 80`, `nextloss`, or `remove`.";
@@ -1629,6 +1651,12 @@ async function handleServerModal(
     }
     await interaction.deferUpdate();
     await saveHouseRates({ base, big, whale, mega });
+    await logAdminAction({
+      actorId: interaction.user.id,
+      actorTag: interaction.user.tag,
+      action: "House Edge Updated",
+      detail: `Base: ${rawBase} | >49M: ${rawBig} | >74M: ${rawWhale} | >99M: ${rawMega}`,
+    });
     const cfg = await fetchServerConfig();
     await interaction.editReply({ embeds: [buildServerEmbed(cfg)], components: buildServerComponents() });
     return;
@@ -1645,6 +1673,12 @@ async function handleServerModal(
     }
     await interaction.deferUpdate();
     await setConfig("mod_role_id", roleId);
+    await logAdminAction({
+      actorId: interaction.user.id,
+      actorTag: interaction.user.tag,
+      action: "Mod Role Updated",
+      detail: `New mod role: <@&${roleId}> (\`${roleId}\`)`,
+    });
     const cfg = await fetchServerConfig();
     await interaction.editReply({ embeds: [buildServerEmbed(cfg)], components: buildServerComponents() });
     return;
@@ -1678,6 +1712,12 @@ async function handleServerModal(
       });
       return;
     }
+    void logAdminAction({
+      actorId: interaction.user.id,
+      actorTag: interaction.user.tag,
+      action: "Channel/Category Updated",
+      detail: `Type: \`${kind}\` → ID: \`${id}\` (<#${id}>)`,
+    });
     try {
       const cfg = await fetchServerConfig();
       await interaction.editReply({ embeds: [buildServerEmbed(cfg)], components: buildServerComponents() });
@@ -1697,6 +1737,12 @@ async function handleServerModal(
     await setThreshold(n);
     await updateStickyMessage(interaction.client);
     const threshold = await getThreshold();
+    void logAdminAction({
+      actorId: interaction.user.id,
+      actorTag: interaction.user.tag,
+      action: "Suggestion Threshold Updated",
+      detail: `Reaction threshold set to **${threshold}**`,
+    });
     await interaction.reply({
       ephemeral: true,
       embeds: [
@@ -1714,6 +1760,12 @@ async function handleServerModal(
     await setStickyText(text);
     await updateStickyMessage(interaction.client);
     const threshold = await getThreshold();
+    void logAdminAction({
+      actorId: interaction.user.id,
+      actorTag: interaction.user.tag,
+      action: "Sticky Message Updated",
+      detail: `Preview: ${text.replace("{threshold}", String(threshold)).replace("{emoji}", "[emoji]").slice(0, 200)}`,
+    });
     await interaction.reply({
       ephemeral: true,
       embeds: [

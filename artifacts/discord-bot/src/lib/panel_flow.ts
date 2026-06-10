@@ -345,6 +345,15 @@ export async function handleDepositTicketButton(
       .setTimestamp();
 
     await interaction.editReply({ embeds: [denyEmbed], components: [] });
+    void logAdminAction({
+      actorId: interaction.user.id,
+      actorTag: interaction.user.tag,
+      action: "Deposit Denied",
+      targetId: userId,
+      amount,
+      detail: `Denied in <#${interaction.channelId}>`,
+      good: false,
+    });
     return;
   }
 }

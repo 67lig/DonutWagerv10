@@ -6,6 +6,7 @@ import {
 import { adjustBalance, getOrCreateUser, recordBalanceEvent } from "../lib/db.js";
 import { formatCoins, parseAmount } from "../lib/format.js";
 import { isModOrOwner } from "../lib/permissions.js";
+import { logAdminAction } from "../lib/gamblelog.js";
 import type { SlashCommand } from "../lib/types.js";
 import { CHANNELS } from "../lib/config.js";
 
@@ -57,6 +58,14 @@ const command: SlashCommand = {
       )
       .setTimestamp()
       .setFooter({ text: `Deposited by ${interaction.user.tag}` });
+    await logAdminAction({
+      actorId: interaction.user.id,
+      actorTag: interaction.user.tag,
+      action: "Admin Deposit",
+      targetId: target.id,
+      amount,
+      detail: `New balance: ${formatCoins(newBal)}`,
+    });
     await interaction.reply({ embeds: [embed], ephemeral: true });
     try {
       const logChannel = await interaction.client.channels.fetch(CHANNELS.WITHDRAW_LOG);

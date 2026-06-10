@@ -15,6 +15,7 @@ import {
   recordBalanceEvent,
 } from "./db.js";
 import { formatCoins } from "./format.js";
+import { logAdminAction } from "./gamblelog.js";
 
 export const WITHDRAW_BTN_PREFIX = "withdraw_pending";
 
@@ -168,6 +169,15 @@ export async function handleWithdrawButton(
       delta: amount,
       source: "withdraw",
       detail: `Refund — withdrawal cancelled in <#${pending.channel_id}>`,
+    });
+    void logAdminAction({
+      actorId: interaction.user.id,
+      actorTag: interaction.user.tag,
+      action: "Withdrawal Cancelled",
+      targetId: pending.discord_id,
+      amount,
+      detail: `Refunded — cancelled in <#${pending.channel_id}>. New balance: ${formatCoins(newBalance)}`,
+      good: false,
     });
 
     const cancelEmbed = new EmbedBuilder()

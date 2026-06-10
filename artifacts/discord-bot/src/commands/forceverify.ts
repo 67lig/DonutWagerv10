@@ -5,6 +5,7 @@ import {
 } from "discord.js";
 import { findUserByMinecraftUsername, getOrCreateUser, setVerified } from "../lib/db.js";
 import { isModOrOwner } from "../lib/permissions.js";
+import { logAdminAction } from "../lib/gamblelog.js";
 import type { SlashCommand } from "../lib/types.js";
 
 const command: SlashCommand = {
@@ -44,6 +45,14 @@ const command: SlashCommand = {
 
     await getOrCreateUser(target.id);
     await setVerified(target.id, ign);
+    await logAdminAction({
+      actorId: interaction.user.id,
+      actorTag: interaction.user.tag,
+      action: "Force Verify",
+      targetId: target.id,
+      detail: `Linked to Minecraft: \`${ign}\``,
+      good: true,
+    });
 
     await interaction.reply({
       embeds: [

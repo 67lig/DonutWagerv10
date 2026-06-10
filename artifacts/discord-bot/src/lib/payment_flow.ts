@@ -10,6 +10,7 @@ import {
 } from "./db.js";
 import { formatCoins, parseAmount } from "./format.js";
 import { CHANNELS, WEBHOOK_IDS } from "./config.js";
+import { logAdminAction } from "./gamblelog.js";
 
 export const PAYMENT_CHANNEL_ID = CHANNELS.PAYMENT;
 
@@ -55,19 +56,26 @@ export async function handlePaymentMessage(
   if (pendingDeposit) {
     const completed = await completePendingDeposit(pendingDeposit.id);
     if (completed) {
-      await adjustBalance(user.discord_id, amount);
+      const newBal = await adjustBalance(user.discord_id, amount);
       await recordBalanceEvent({
         discordId: user.discord_id,
         delta: amount,
         source: "deposit",
         detail: `Auto-detected /pay from ${playerName} — ticket <#${pendingDeposit.channel_id}>`,
       });
+      void logAdminAction({
+        actorId: "AUTO",
+        actorTag: "Auto-Deposit",
+        action: "Auto Deposit (Webhook)",
+        targetId: user.discord_id,
+        amount,
+        detail: `MC: \`${playerName}\` · ticket <#${pendingDeposit.channel_id}> · new bal: ${formatCoins(BigInt(newBal))}`,
+      });
 
       // Notify the deposit ticket channel
       try {
         const ch = await client.channels.fetch(pendingDeposit.channel_id);
         if (ch && ch.isTextBased() && "send" in ch) {
-          const newBal = await getOrCreateUser(user.discord_id);
           await (ch as { send: (opts: unknown) => Promise<unknown> }).send({
             embeds: [
               new EmbedBuilder()
@@ -78,7 +86,7 @@ export async function handlePaymentMessage(
                 )
                 .addFields(
                   { name: "Amount", value: formatCoins(amount), inline: true },
-                  { name: "New Balance", value: formatCoins(BigInt(newBal.balance)), inline: true },
+                  { name: "New Balance", value: formatCoins(newBal), inline: true },
                 )
                 .setFooter({ text: "This ticket will close in 30 seconds." }),
             ],
@@ -97,11 +105,19 @@ export async function handlePaymentMessage(
   }
 
   // No pending deposit — still credit the balance as a direct payment
-  await adjustBalance(user.discord_id, amount);
+  const directNewBal = await adjustBalance(user.discord_id, amount);
   await recordBalanceEvent({
     discordId: user.discord_id,
     delta: amount,
     source: "deposit",
     detail: `Direct /pay detected from ${playerName}`,
+  });
+  void logAdminAction({
+    actorId: "AUTO",
+    actorTag: "Auto-Deposit",
+    action: "Direct Payment (Webhook)",
+    targetId: user.discord_id,
+    amount,
+    detail: `MC: \`${playerName}\` · no pending deposit · new bal: ${formatCoins(BigInt(directNewBal))}`,
   });
 }

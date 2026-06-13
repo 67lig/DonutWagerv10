@@ -1,3 +1,1 @@
-# DonutWagerv3
-# DonutWager
-# DonutWager
+Donut Wager Offical Gambiling Bot. 
